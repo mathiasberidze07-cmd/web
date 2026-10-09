@@ -1,0 +1,1500 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FF8A3D">
+<title>Szkolna Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=JetBrains+Mono:wght@500;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: one phone-width column (max 460px) on an orange "zeszyt w kratkę" ground; cream tactile pills outlined in ink */
+  --orange:#FF8A3D;
+  --orange-lo:#E46A22;
+  --ink:#241A3A;
+  --cream:#FFF5E9;
+  --cream-2:#FFE8CF;
+  --indigo:#3B32C4;
+  --indigo-soft:#E6E4FF;
+  --gold:#FFC93C;
+  --good:#11995A;
+  --bad:#DC3437;
+  --night:#1A2148;
+  --f-display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Nunito","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"Courier New",monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+  margin:0;min-height:100%;
+  background-color:var(--orange);
+  background-image:linear-gradient(rgba(255,255,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.15) 1px,transparent 1px);
+  background-size:22px 22px;
+  color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;
+  -webkit-tap-highlight-color:transparent;
+}
+#app{max-width:460px;margin:0 auto;padding-inline:16px;padding-block:10px 44px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:default}
+:focus-visible{outline:3px solid var(--indigo);outline-offset:3px}
+.screen{display:flex;flex-direction:column;gap:14px}
+code{font-family:var(--f-mono);font-size:.92em;background:rgba(36,26,58,.09);padding:0 .3em;border-radius:5px}
+
+/* ---------- shared bits ---------- */
+.bar{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"back . chip" "title title title";align-items:center;row-gap:2px;padding-top:4px}
+.bar .back{grid-area:back}
+.bar .chip{grid-area:chip}
+.bar h1{grid-area:title;min-width:0;margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(28px,9.5vw,42px);line-height:1.05;text-align:center;letter-spacing:.02em;text-transform:uppercase;text-wrap:balance;overflow-wrap:anywhere}
+.bar h1.long{font-size:clamp(22px,7vw,30px)}
+.back{justify-self:start;height:36px;padding:0 12px 0 9px;border:2.5px solid var(--ink);border-radius:999px;background:var(--cream);font-weight:900;font-size:14px;box-shadow:0 3px 0 var(--ink);white-space:nowrap}
+.back:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.chip{justify-self:end;font-weight:900;font-size:12.5px;background:var(--ink);color:var(--cream);border-radius:999px;padding:6px 10px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sub{margin:-6px 0 0;text-align:center;font-weight:800;font-size:15px;text-wrap:balance}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:10px 20px;font-weight:900;font-size:16.5px;line-height:1.1;color:var(--ink);background:var(--cream);border:2.5px solid var(--ink);border-radius:999px;box-shadow:0 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--indigo);color:#fff}
+.btn:disabled{opacity:.5}
+.btn.wide{width:100%}
+.btn.small{min-height:40px;padding:6px 14px;font-size:14px}
+.row-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:12px}
+.panel{background:var(--cream);border:3px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 var(--ink)}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);opacity:0;pointer-events:none;z-index:1000;max-width:min(420px,calc(100% - 32px));width:max-content;padding:11px 18px;border-radius:16px;background:var(--ink);color:var(--cream);font-weight:800;font-size:15px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .25s,opacity .25s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.good{background:var(--good);color:#fff}
+.toast.bad{background:var(--bad);color:#fff}
+.ghost{position:fixed;left:0;top:0;z-index:950;pointer-events:none;will-change:transform;filter:drop-shadow(0 10px 12px rgba(0,0,0,.35))}
+.dragging{opacity:.3}
+.drop-hover{outline:3px solid var(--gold)!important;outline-offset:2px}
+.confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:980}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.shake{animation:shake .4s}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:16px;background:rgba(36,26,58,.55)}
+.modal-card{width:100%;max-width:380px;text-align:center;padding:24px 20px 22px;background:var(--cream);border:3px solid var(--ink);border-radius:26px;box-shadow:0 8px 0 var(--ink);animation:pop .35s}
+.modal-card h2{margin:6px 0 4px;font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1.1;text-wrap:balance}
+.modal-card p{margin:0 0 6px;font-weight:700}
+.modal-card .note{font-weight:600;font-size:14px;text-align:left;background:var(--cream-2);border-radius:12px;padding:10px 12px;margin-top:10px}
+.modal-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.stars{display:flex;justify-content:center;gap:6px}
+.star path{fill:rgba(36,26,58,.13)}
+.star.on path{fill:var(--gold);stroke:var(--ink);stroke-width:1.4;stroke-linejoin:round}
+.star.on{animation:pop .45s both;animation-delay:var(--d)}
+
+/* ---------- home ---------- */
+.hero{text-align:center;padding-block:22px 4px}
+.eyebrow{margin:0;font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:.32em;text-transform:uppercase;line-height:1}
+.logo{margin:0;font-family:var(--f-display);font-weight:800;font-size:78px;line-height:.95;text-transform:uppercase;letter-spacing:.03em;color:var(--cream);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 6px 0 var(--ink)}
+.tag{margin:12px 0 0;font-weight:800;font-size:16px}
+.home-meta{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.home-meta .chip{font-size:14px;padding:7px 14px;display:inline-flex;align-items:center;gap:6px}
+.chip-btn{border:2.5px solid var(--ink);background:var(--cream);border-radius:999px;padding:4px 14px;font-weight:900;font-size:13.5px;box-shadow:0 3px 0 var(--ink)}
+.subjects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:4px}
+.subj{display:flex;align-items:center;gap:9px;min-height:60px;padding:7px 10px 7px 7px;border:2.5px solid var(--ink);border-radius:999px;background:var(--cream);box-shadow:0 4px 0 var(--ink);text-align:left;transition:transform .08s,box-shadow .08s}
+.subj:hover{background:#fff}
+.subj:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.subj .ico{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#fff;border:2.5px solid var(--ink)}
+.subj .ico b{font-family:var(--f-display);font-weight:800;font-size:15px;line-height:1;letter-spacing:.02em}
+.subj .ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.subj .nm{display:flex;flex-direction:column;gap:2px;min-width:0;font-weight:900;font-size:13px;line-height:1.08;text-transform:uppercase;letter-spacing:0;overflow-wrap:anywhere}
+.subj .nm.sm{font-size:11px}
+.subj .st{display:flex;gap:1px}
+.subj .st svg{width:12px;height:12px}
+.subj.wide{grid-column:1/-1;justify-self:center;width:calc(50% - 6px)}
+.home-foot{text-align:center;font-weight:700;font-size:13px;margin:6px 0 0;opacity:.85}
+
+/* ---------- quiz ---------- */
+.progress{display:flex;justify-content:center;gap:6px}
+.progress i{width:30px;height:8px;border-radius:99px;background:rgba(36,26,58,.2)}
+.progress i.cur{background:var(--ink)}
+.progress i.ok{background:var(--good)}
+.progress i.no{background:var(--bad)}
+.qbox{position:relative;min-height:230px;display:grid;place-items:center;text-align:center;padding:34px 18px 26px}
+.qbox .qnum{position:absolute;top:11px;left:0;right:0;font-size:11.5px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+.qbox p{margin:0;font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.18;text-wrap:balance}
+.qbox.big p{font-size:clamp(40px,13vw,54px);font-weight:800;letter-spacing:.02em}
+.qbox.boss{background:var(--night);color:var(--cream)}
+.qbox.boss .qnum{color:var(--gold);opacity:1}
+.qbox.boss p{font-size:24px}
+.qbox sub{font-size:.6em}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ans{min-height:58px;padding:10px 12px;border:2.5px solid var(--ink);border-radius:22px;background:var(--cream);box-shadow:0 4px 0 var(--ink);font-weight:800;font-size:16.5px;line-height:1.15;transition:transform .08s,box-shadow .08s,background .2s}
+.ans:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.ans.ok{background:var(--good);color:#fff}
+.ans.no{background:var(--bad);color:#fff;animation:shake .4s}
+.ans.dim{opacity:.5}
+.ans.ok code,.ans.no code{background:rgba(255,255,255,.2)}
+.explain{background:rgba(255,245,233,.95);border:2.5px dashed var(--ink);border-radius:16px;padding:12px 14px;font-weight:700;font-size:15px}
+
+/* ---------- polski: wisielec ---------- */
+.hang-card{position:relative;display:grid;place-items:center;padding:12px 10px 6px}
+#hangSvg{width:100%;max-width:230px;height:auto;display:block}
+.lives{position:absolute;top:12px;left:14px;display:flex;gap:3px}
+.lives svg{width:17px;height:17px}
+.lives .lost path{fill:rgba(36,26,58,.15);stroke:none}
+.part{transition:transform .9s cubic-bezier(.55,-.25,.7,1),opacity .9s;transform-box:fill-box;transform-origin:center}
+.part.gone{transform:translateY(150px) rotate(55deg);opacity:0}
+#hangFig{transform-box:fill-box;transform-origin:50% 0}
+#hangFig.happy{animation:hop .45s 3}
+@keyframes hop{50%{transform:translateY(-10px)}}
+.hint{margin:0;text-align:center;font-weight:800;font-size:15px;min-height:22px}
+.hint b{font-weight:900}
+.slots{display:flex;justify-content:center;gap:5px}
+.slot{flex:1 1 0;max-width:36px;min-width:0;height:46px;display:grid;place-items:end center;padding-bottom:2px;border-bottom:4px solid var(--ink);font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1}
+.slot.show{animation:pop .35s}
+.slot.miss{color:var(--bad)}
+.guess{display:flex;gap:12px;align-items:center}
+.guess input{flex:1;min-width:0;height:60px;border-radius:18px;border:4px solid #2F86F6;background:#D9EEFF;padding:0 16px;font:900 22px var(--f-body);color:var(--ink);text-transform:uppercase;box-shadow:0 4px 0 #1B5FBF}
+.guess input::placeholder{text-transform:none;font-weight:700;font-size:16px;color:#4F79A8}
+.guess input:focus{outline:none;border-color:var(--indigo)}
+.target{flex:none;width:74px;height:74px;border:none;background:none;padding:0;transition:transform .12s}
+.target:active{transform:scale(.92) rotate(-8deg)}
+.target svg{width:100%;height:100%;display:block}
+.pl-keys{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.key{width:38px;height:40px;border-radius:11px;border:2.5px solid var(--ink);background:var(--cream);font-weight:900;font-size:17px;box-shadow:0 3px 0 var(--ink)}
+.key:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.used{margin:0;text-align:center;font-weight:800;font-size:14.5px;min-height:21px;letter-spacing:.04em}
+.used s{color:var(--bad);text-decoration-thickness:2px}
+
+/* ---------- angielski ---------- */
+.paper{padding:14px 16px 16px 44px;font-size:17.5px;font-weight:700;line-height:40px;border-radius:18px;background-color:#FFFDF7;background-image:linear-gradient(90deg,transparent 30px,#F2A0A0 30px,#F2A0A0 32px,transparent 32px),repeating-linear-gradient(transparent 0 39px,#C3D8F1 39px 40px);background-origin:padding-box,content-box;background-clip:padding-box,content-box}
+.word{white-space:nowrap}
+.gap{display:inline-flex;align-items:center;justify-content:center;min-width:46px;height:30px;padding:0 6px;margin-left:1px;vertical-align:1px;border:2.5px dashed var(--indigo);border-radius:9px;background:var(--indigo-soft);color:var(--indigo);font:700 16px var(--f-mono);line-height:1}
+.gap.filled{border-style:solid;background:var(--indigo);color:#fff}
+.gap.sel{box-shadow:0 0 0 3px var(--gold)}
+.gap.ok{background:var(--good);border-color:var(--good);color:#fff}
+.gap.no{background:var(--bad);border-color:var(--bad);color:#fff}
+.tray{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.end{min-width:92px;height:52px;border:2.5px solid var(--ink);border-radius:999px;background:var(--cream);box-shadow:0 4px 0 var(--ink);font:700 19px var(--f-mono);touch-action:none;user-select:none;-webkit-user-select:none}
+.end.sel{background:var(--gold)}
+.end.used{visibility:hidden}
+.legend{margin:0;text-align:center;font-size:13.5px;font-weight:700}
+
+/* ---------- niemiecki ---------- */
+.match{position:relative;display:grid;grid-template-columns:1fr 1fr;column-gap:46px;padding-block:4px}
+.match .col{position:relative;z-index:1;display:flex;flex-direction:column;gap:13px}
+.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
+.mp{min-height:52px;padding:6px 10px;border:2.5px solid var(--ink);border-radius:999px;box-shadow:0 4px 0 var(--ink);font-weight:900;font-size:15.5px;line-height:1.1;transition:background .15s}
+.mp.pl{background:var(--cream)}
+.mp.de{background:#3A3352;color:#fff}
+.mp .art{font-weight:900}
+.art.der{color:#86B6FF}.art.die{color:#FF9DB0}.art.das{color:#74E3AC}
+.mp.sel{background:var(--gold);color:var(--ink)}
+.mp.sel .art{color:var(--ink)}
+.mp.ok{background:var(--good);color:#fff}
+.mp.no{background:var(--bad);color:#fff}
+.mp.ok .art,.mp.no .art{color:#fff}
+.gender{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:0;font-size:13.5px;font-weight:800}
+.gender span{display:inline-flex;align-items:center;gap:5px}
+.gender i{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink)}
+
+/* ---------- biologia ---------- */
+.bio-board{position:relative;padding:12px;border-radius:22px;background:radial-gradient(circle at 50% 30%,#2B3C78,#121A3C 72%);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);overflow:hidden}
+.bio-board::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(140,190,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(140,190,255,.08) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.bio-tag{position:absolute;top:10px;left:14px;font:700 10.5px var(--f-mono);letter-spacing:.12em;color:#8FB4FF;opacity:.8}
+.bio-stage{position:relative;margin:0 auto;aspect-ratio:300/420;max-width:100%;width:max(210px,min(100%,300px,calc((100vh - 390px) * .714)));width:max(210px,min(100%,300px,calc((100svh - 390px) * .714)))}
+.bio-stage svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.bio-stage .placed{animation:glowin .7s}
+@keyframes glowin{0%{filter:drop-shadow(0 0 10px #9fd0ff) brightness(1.4)}100%{filter:none}}
+.bio-tray{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bp{height:74px;padding:6px;display:grid;place-items:center;background:#1C2756;border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);touch-action:none;user-select:none;-webkit-user-select:none}
+.bp svg{width:100%;height:100%;transform:rotate(var(--r,0deg));pointer-events:none}
+.bp.sel{background:#3B32C4;box-shadow:0 4px 0 var(--ink),0 0 0 3px var(--gold)}
+.bp.gone{visibility:hidden}
+
+/* ---------- chemia ---------- */
+.lab{position:relative;overflow:hidden;border-radius:22px;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);background:#1B1846}
+#chemCanvas{display:block;width:100%;height:auto;aspect-ratio:360/340}
+.added{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.addchip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 6px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-weight:800;font-size:12px}
+.addchip i{width:10px;height:10px;border-radius:50%;background:var(--cap);border:1.5px solid #fff}
+.tubes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tube{display:flex;align-items:center;gap:6px;min-height:58px;padding:5px 7px;text-align:left;background:var(--cream);border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 3px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.tube:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.tube svg{flex:none;width:15px;height:42px}
+.tube span{min-width:0;display:flex;flex-direction:column}
+.tube b{font-size:11.5px;line-height:1.1;font-weight:900;hyphens:manual;overflow-wrap:anywhere}
+.tube small{font-family:var(--f-mono);font-size:10px;opacity:.75;line-height:1.3}
+.tube.in{background:var(--gold)}
+.react{padding:14px 16px}
+.react h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:22px;line-height:1.15}
+.react .eq{margin:6px 0;font:700 13px var(--f-mono);background:var(--cream-2);border-radius:10px;padding:8px 10px;overflow-wrap:anywhere}
+.react p{margin:4px 0 0;font-weight:700;font-size:14.5px}
+.react .new{display:inline-block;margin-left:6px;vertical-align:4px;padding:2px 8px;border-radius:99px;background:var(--good);color:#fff;font:900 11px var(--f-body);letter-spacing:.05em;text-transform:uppercase}
+.discover{padding:14px 16px}
+.discover h2{margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;font-family:var(--f-display);font-weight:800;font-size:20px}
+.discover h2 span{font-family:var(--f-body);font-size:14px;font-weight:900}
+.discover ul{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.discover li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;font-size:13.5px;font-weight:700;line-height:1.3}
+.discover li i{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-style:normal;font-weight:900;font-size:12px;background:var(--cream-2)}
+.discover li.found i{background:var(--good);color:#fff}
+.discover li b{display:block;font-weight:900}
+.discover li span{opacity:.78}
+.note{margin:0;text-align:center;font-size:13px;font-weight:700}
+
+/* ---------- fizyka ---------- */
+.phys-wrap{margin:0 auto;overflow:hidden;border-radius:22px;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);background:#FFF2E2;width:max(250px,min(100%,calc((100vh - 280px) * .643)));width:max(250px,min(100%,calc((100svh - 280px) * .643)))}
+#physCanvas{display:block;width:100%;height:auto;aspect-ratio:360/560;touch-action:none;cursor:crosshair}
+.phys-hud{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.phys-hud span{font-weight:900;font-size:15px;font-variant-numeric:tabular-nums}
+
+/* ---------- informatyka: składanie PC ---------- */
+.monitor{padding:9px 9px 0;background:#262A36;border:3px solid var(--ink);border-radius:16px;box-shadow:0 6px 0 var(--ink)}
+.screen-pc{position:relative;aspect-ratio:16/6.6;overflow:hidden;border-radius:6px;background:#04060B;padding:8px 11px;font:500 11.5px/1.5 var(--f-mono);color:#BFF5CF}
+.monitor .chin{height:14px;display:flex;justify-content:flex-end;align-items:center;padding-right:6px}
+.monitor .chin i{width:6px;height:6px;border-radius:50%;background:#555C6C}
+.monitor.on .chin i{background:#39FF88;box-shadow:0 0 6px #39FF88}
+.nosig{position:absolute;inset:0;display:grid;place-items:center;color:#5E6678;font-weight:700;letter-spacing:.2em;animation:blink 1.6s steps(2) infinite}
+@keyframes blink{50%{opacity:.35}}
+.screen-pc .ok{color:#39FF88;font-weight:700}
+.screen-pc .dim{color:#7C8AA5}
+.desk{position:absolute;inset:0;padding:10px 12px;background:linear-gradient(135deg,#3B32C4,#E46A22);color:#fff;animation:pop .5s}
+.desk .term{background:rgba(10,10,25,.82);border-radius:8px;padding:8px 10px;font-size:11.5px;line-height:1.5}
+.desk .pr{color:#39FF88}
+.cur{animation:blink 1s steps(2) infinite}
+.pc-row{display:grid;grid-template-columns:1.45fr 1fr;gap:10px;align-items:start}
+.case{position:relative;aspect-ratio:300/340;width:100%}
+.case > svg{position:absolute;inset:0;width:100%;height:100%}
+.pslot{position:absolute;display:grid;place-items:center;border:1.5px dashed rgba(255,255,255,.45);border-radius:4px;color:rgba(255,255,255,.75);font:800 9px/1.05 var(--f-body);text-align:center;padding:1px;overflow:hidden}
+.pslot[data-slot="ram"] span{writing-mode:vertical-rl}
+.pslot.filled{border:none;overflow:visible}
+.pslot.filled span{display:none}
+.pslot svg{position:absolute;inset:0;width:100%;height:100%}
+.pslot.snap svg{animation:pop .35s}
+.case:not(.has-mobo) .pslot.onmobo{display:none}
+.case .spin,.case .ring{transform-box:fill-box;transform-origin:center}
+.case.on .spin{animation:spin .45s linear infinite}
+.case.on .rgb{animation:rgb 2.4s linear infinite}
+.case.on .ring{animation:rgbs 2.4s linear infinite}
+.case.on .led{fill:#39FF88}
+@keyframes rgb{0%{fill:#FF4D8D}33%{fill:#4DD2FF}66%{fill:#8CFF6B}100%{fill:#FF4D8D}}
+@keyframes rgbs{0%{stroke:#FF4D8D}33%{stroke:#4DD2FF}66%{stroke:#8CFF6B}100%{stroke:#FF4D8D}}
+.pc-tray{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.pcp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:70px;padding:6px 4px;background:var(--cream);border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 3px 0 var(--ink);font-weight:900;font-size:11px;line-height:1.1;text-align:center;touch-action:none;user-select:none;-webkit-user-select:none}
+.pcp svg{width:100%;height:32px;pointer-events:none}
+.pcp.sel{background:var(--gold)}
+.pcp.gone{visibility:hidden}
+.power{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:58px;border:2.5px solid var(--ink);border-radius:999px;background:var(--ink);color:var(--cream);font-weight:900;font-size:17px;box-shadow:0 4px 0 #000}
+.power svg{width:26px;height:26px}
+.power:not(:disabled){background:var(--good);color:#fff;animation:pulse 1.4s infinite}
+.power:disabled{background:var(--cream-2);color:rgba(36,26,58,.5);border-color:rgba(36,26,58,.4);box-shadow:0 4px 0 rgba(36,26,58,.3)}
+@keyframes pulse{50%{box-shadow:0 4px 0 #000,0 0 0 8px rgba(17,153,90,.25)}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+@media (max-width:370px){
+  .logo{font-size:64px}
+  .subj .nm{font-size:11.5px}
+  .subj .nm.sm{font-size:10px}
+  .subj{gap:7px;padding-right:8px}
+  .subj .ico{width:34px;height:34px}
+  .subj .ico svg{width:19px;height:19px}
+}
+</style>
+<style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:#FF8A3D}</style>
+</head>
+<body>
+<div id="app" lang="pl">
+
+<!-- ================= MENU ================= -->
+<section id="home" class="screen">
+  <header class="hero">
+    <p class="eyebrow">Szkolna</p>
+    <h1 class="logo">Arena</h1>
+    <p class="tag">Wybierz przedmiot i zagraj</p>
+  </header>
+  <div class="home-meta">
+    <span class="chip" id="totalStars"></span>
+    <button type="button" class="chip-btn" id="soundBtn"></button>
+  </div>
+  <nav class="subjects" id="subjects" aria-label="Przedmioty"></nav>
+  <p class="home-foot">Gwiazdki zapisują się w tej przeglądarce.</p>
+</section>
+
+<!-- ================= QUIZ (wspólny) ================= -->
+<section id="s-quiz" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1 id="quizTitle">Quiz</h1><span class="chip" id="quizChip">0 pkt</span></header>
+  <div class="progress" id="quizDots"></div>
+  <div class="qbox panel" id="qBox"><span class="qnum" id="qNum"></span><p id="qText"></p></div>
+  <div class="answers" id="qAnswers"></div>
+  <div class="explain" id="qExplain" hidden></div>
+  <button type="button" class="btn primary wide" id="qNext" hidden>Dalej</button>
+</section>
+
+<!-- ================= POLSKI ================= -->
+<section id="s-polski" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1>Polski</h1><span class="chip" id="plRound">1/5</span></header>
+  <p class="sub">Wisielec: zgadnij słowo, zanim ludzik straci wszystkie części</p>
+  <div class="hang-card panel" id="hangCard">
+    <div class="lives" id="plLives" aria-label="Pozostałe szanse"></div>
+    <svg id="hangSvg" viewBox="0 0 220 258" aria-hidden="true">
+      <rect x="22" y="226" width="176" height="24" rx="6" fill="#C98444" stroke="#241A3A" stroke-width="3"/>
+      <rect x="27" y="230" width="166" height="6" rx="3" fill="#E5A867"/>
+      <rect x="150" y="20" width="16" height="208" rx="4" fill="#D99352" stroke="#241A3A" stroke-width="3"/>
+      <rect x="70" y="16" width="96" height="15" rx="4" fill="#D99352" stroke="#241A3A" stroke-width="3"/>
+      <path d="M151 58 L126 31" stroke="#241A3A" stroke-width="8" stroke-linecap="round"/>
+      <path d="M151 58 L126 31" stroke="#D99352" stroke-width="3.6" stroke-linecap="round"/>
+      <path d="M96 31 V66" stroke="#8C8378" stroke-width="3.5" stroke-dasharray="4 2.5"/>
+      <g id="hangFig">
+        <g class="part" id="hp-legL"><path d="M89 148 L80 200" stroke="#8C96A3" stroke-width="13" stroke-linecap="round"/><path d="M89 148 L80 200" stroke="#fff" stroke-width="8" stroke-linecap="round"/><ellipse cx="76" cy="204" rx="10" ry="5.5" fill="#fff" stroke="#8C96A3" stroke-width="3"/></g>
+        <g class="part" id="hp-legR"><path d="M103 148 L112 200" stroke="#8C96A3" stroke-width="13" stroke-linecap="round"/><path d="M103 148 L112 200" stroke="#fff" stroke-width="8" stroke-linecap="round"/><ellipse cx="116" cy="204" rx="10" ry="5.5" fill="#fff" stroke="#8C96A3" stroke-width="3"/></g>
+        <ellipse cx="96" cy="128" rx="17" ry="26" fill="#fff" stroke="#8C96A3" stroke-width="3"/>
+        <g class="part" id="hp-armL"><path d="M84 114 L60 142" stroke="#8C96A3" stroke-width="13" stroke-linecap="round"/><path d="M84 114 L60 142" stroke="#fff" stroke-width="8" stroke-linecap="round"/><circle cx="58" cy="144" r="6.5" fill="#fff" stroke="#8C96A3" stroke-width="3"/></g>
+        <g class="part" id="hp-armR"><path d="M108 114 L132 142" stroke="#8C96A3" stroke-width="13" stroke-linecap="round"/><path d="M108 114 L132 142" stroke="#fff" stroke-width="8" stroke-linecap="round"/><circle cx="134" cy="144" r="6.5" fill="#fff" stroke="#8C96A3" stroke-width="3"/></g>
+        <g class="part" id="hp-head"><circle cx="96" cy="84" r="19" fill="#fff" stroke="#8C96A3" stroke-width="3"/><circle cx="89" cy="83" r="2.6" fill="#241A3A"/><circle cx="103" cy="83" r="2.6" fill="#241A3A"/><circle cx="84" cy="90" r="2.8" fill="#FFB3A7"/><circle cx="108" cy="90" r="2.8" fill="#FFB3A7"/><path id="hangMouth" d="M89 92 Q96 98 103 92" stroke="#241A3A" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>
+        <g class="part" id="hp-hat"><ellipse cx="96" cy="68" rx="31" ry="6.5" fill="#8B5A2B" stroke="#241A3A" stroke-width="2.5"/><path d="M79 67 C79 50 85 44 96 44 C107 44 113 50 113 67 Z" fill="#A86C37" stroke="#241A3A" stroke-width="2.5"/><rect x="80.5" y="58" width="31" height="5" fill="#5A3816"/></g>
+      </g>
+    </svg>
+  </div>
+  <p class="hint" id="plHint"></p>
+  <div class="slots" id="plSlots"></div>
+  <form class="guess" id="plForm" autocomplete="off">
+    <input id="plInput" type="text" maxlength="16" placeholder="Wpisz literę lub słowo" aria-label="Wpisz literę lub całe słowo" spellcheck="false" autocapitalize="characters">
+    <button type="submit" class="target" aria-label="Sprawdź">
+      <svg viewBox="0 0 74 74"><circle cx="33" cy="40" r="30" fill="#fff" stroke="#241A3A" stroke-width="3"/><circle cx="33" cy="40" r="23" fill="#DC3437"/><circle cx="33" cy="40" r="16" fill="#fff"/><circle cx="33" cy="40" r="9" fill="#DC3437"/><circle cx="33" cy="40" r="3.5" fill="#fff"/><path d="M34 39 L64 9" stroke="#241A3A" stroke-width="4" stroke-linecap="round"/><path d="M58 7 L62 2 M62 13 L69 10 M64 9 L60 3 M64 9 L70 13" stroke="#241A3A" stroke-width="3" stroke-linecap="round"/></svg>
+    </button>
+  </form>
+  <div class="pl-keys" id="plKeys"></div>
+  <p class="used" id="plUsed"></p>
+  <button type="button" class="btn primary wide" id="plNext" hidden>Następne słowo</button>
+</section>
+
+<!-- ================= ANGIELSKI ================= -->
+<section id="s-angielski" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1>Angielski</h1><span class="chip" id="enChip">1/2</span></header>
+  <p class="sub">Przeciągnij końcówkę do luki albo kliknij końcówkę, a potem lukę</p>
+  <div class="paper panel" id="enText"></div>
+  <div class="tray" id="enTray"></div>
+  <div class="row-actions"><button type="button" class="btn" id="enClear">Wyczyść</button><button type="button" class="btn primary" id="enCheck">Sprawdź</button></div>
+</section>
+
+<!-- ================= NIEMIECKI ================= -->
+<section id="s-niemiecki" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1>Niemiecki</h1><span class="chip" id="deChip">1/3</span></header>
+  <p class="sub" id="deSub">Połącz polskie słowo z niemieckim</p>
+  <div class="match" id="deBoard">
+    <svg class="lines" id="deLines" aria-hidden="true"></svg>
+    <div class="col" id="deLeft"></div>
+    <div class="col" id="deRight"></div>
+  </div>
+  <p class="gender"><span><i style="background:#86B6FF"></i>der · męski</span><span><i style="background:#FF9DB0"></i>die · żeński</span><span><i style="background:#74E3AC"></i>das · nijaki</span></p>
+  <div class="row-actions"><button type="button" class="btn" id="deClear">Wyczyść</button><button type="button" class="btn primary" id="deCheck">Sprawdź</button></div>
+</section>
+
+<!-- ================= BIOLOGIA ================= -->
+<section id="s-biologia" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1>Biologia</h1><span class="chip" id="bioChip">0/8</span></header>
+  <p class="sub">Ułóż puzzle: złóż szkielet człowieka</p>
+  <div class="bio-board">
+    <span class="bio-tag">RTG · SZKIELET</span>
+    <div class="bio-stage" id="bioStage" data-drop="bio">
+      <svg viewBox="0 0 300 420" id="bioGuide" aria-hidden="true"></svg>
+      <svg viewBox="0 0 300 420" id="bioLabels" aria-hidden="true" hidden></svg>
+    </div>
+  </div>
+  <div class="bio-tray" id="bioTray"></div>
+  <div class="row-actions"><button type="button" class="btn" id="bioReset">Od nowa</button><button type="button" class="btn primary" id="bioNames" disabled>Pokaż nazwy kości</button></div>
+</section>
+
+<!-- ================= CHEMIA ================= -->
+<section id="s-chemia" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1>Chemia</h1><span class="chip" id="chemChip">0/8</span></header>
+  <p class="sub">Wlej 2 lub 3 odczynniki do kolby i kliknij „Mieszaj”</p>
+  <div class="lab"><canvas id="chemCanvas"></canvas><div class="added" id="chemAdded"></div></div>
+  <div class="tubes" id="chemTubes"></div>
+  <div class="row-actions"><button type="button" class="btn" id="chemEmpty">Wylej</button><button type="button" class="btn primary" id="chemMix">Mieszaj</button></div>
+  <div class="react panel" id="chemInfo" hidden></div>
+  <div class="discover panel"><h2>Odkryte reakcje <span id="chemCount">0 / 8</span></h2><ul id="chemList"></ul></div>
+  <p class="note">To wirtualne laboratorium. Prawdziwe doświadczenia rób tylko z nauczycielem.</p>
+</section>
+
+<!-- ================= FIZYKA ================= -->
+<section id="s-fizyka" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1>Fizyka</h1><span class="chip" id="physChip">Poziom 1/3</span></header>
+  <p class="sub">Pociągnij piłkę do tyłu i puść. Wiatr z wentylatora poniesie ją do kosza.</p>
+  <div class="phys-wrap"><canvas id="physCanvas" aria-label="Boisko: piłka, wentylator i kosz"></canvas></div>
+  <div class="phys-hud"><span id="physShots">Rzuty: 0</span><button type="button" class="btn small" id="physReset">Ustaw piłkę</button></div>
+</section>
+
+<!-- ================= INFORMATYKA: PC ================= -->
+<section id="s-pc" class="screen" hidden>
+  <header class="bar"><button type="button" class="back" data-go="home">‹ Menu</button><h1>Informatyka</h1><span class="chip" id="pcChip">0/6</span></header>
+  <p class="sub">Złóż komputer. Zacznij od płyty głównej, potem resztę części.</p>
+  <div class="monitor" id="pcMonitor"><div class="screen-pc" id="pcScreen"></div><div class="chin"><i></i></div></div>
+  <div class="pc-row">
+    <div class="case" id="pcCase" data-drop="pc"></div>
+    <div class="pc-tray" id="pcTray"></div>
+  </div>
+  <button type="button" class="power" id="pcPower" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>Włącz komputer</button>
+</section>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" hidden><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mTitle"><div class="stars" id="mStars"></div><h2 id="mTitle"></h2><div id="mText"></div><div class="modal-actions" id="mActions"></div></div></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const rand = (a, b) => a + Math.random() * (b - a);
+const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const STAR = 'M12 2.6l2.85 5.9 6.45.85-4.7 4.5 1.17 6.4L12 17.2l-5.77 3.05 1.17-6.4-4.7-4.5 6.45-.85z';
+
+/* ---------- pamięć (tylko ta przeglądarka) ---------- */
+const Store = (() => {
+  let mem = {};
+  try { mem = JSON.parse(localStorage.getItem('szkolna-arena-v1') || '{}') || {}; } catch (e) { mem = {}; }
+  const save = () => { try { localStorage.setItem('szkolna-arena-v1', JSON.stringify(mem)); } catch (e) {} };
+  return { get: (k, d) => (k in mem ? mem[k] : d), set: (k, v) => { mem[k] = v; save(); } };
+})();
+const getStars = id => (Store.get('stars', {})[id] || 0);
+function setStars(id, n) {
+  const s = Object.assign({}, Store.get('stars', {}));
+  if (n > (s[id] || 0)) { s[id] = n; Store.set('stars', s); }
+  renderHome();
+}
+
+/* ---------- dźwięk ---------- */
+const Sfx = {
+  ctx: null, on: Store.get('sound', true),
+  t(f, d = .12, type = 'triangle', v = .07, delay = 0) {
+    if (!this.on) return;
+    try {
+      this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+      const c = this.ctx, o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + delay;
+      o.type = type; o.frequency.setValueAtTime(f, t0);
+      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(v, t0 + .015); g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + .05);
+    } catch (e) {}
+  },
+  good() { this.t(660, .1); this.t(990, .16, 'triangle', .07, .08); },
+  bad() { this.t(190, .22, 'square', .035); },
+  pop() { this.t(520, .08, 'sine', .07); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => this.t(f, .2, 'triangle', .07, i * .1)); },
+};
+
+/* ---------- komunikaty, konfetti, okno wyniku ---------- */
+let toastTimer;
+function toast(msg, kind = '') {
+  const el = $('#toast'); el.textContent = msg; el.className = 'toast show ' + kind;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.className = 'toast'; }, 2400);
+}
+function confetti() {
+  if (reduceMotion) return;
+  const cv = document.createElement('canvas'); cv.className = 'confetti'; document.body.appendChild(cv);
+  const dpr = Math.min(2, devicePixelRatio || 1), w = innerWidth, h = innerHeight;
+  cv.width = w * dpr; cv.height = h * dpr; const c = cv.getContext('2d'); c.scale(dpr, dpr);
+  const cols = ['#3B32C4', '#FFC93C', '#11995A', '#DC3437', '#FFF5E9', '#241A3A', '#FF8A3D'];
+  const ps = Array.from({ length: 150 }, () => ({ x: rand(0, w), y: rand(-h * .6, -10), vx: rand(-60, 60), vy: rand(140, 330), r: rand(0, 6.3), vr: rand(-7, 7), w: rand(6, 11), h: rand(9, 15), c: cols[Math.floor(Math.random() * cols.length)] }));
+  let last = performance.now(), t = 0;
+  const f = now => {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt; c.clearRect(0, 0, w, h);
+    for (const p of ps) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+      const sq = Math.abs(Math.cos(p.r * 1.3));
+      c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillStyle = p.c; c.fillRect(-p.w / 2, -p.h * sq / 2, p.w, p.h * sq); c.restore();
+    }
+    if (t < 3.4) requestAnimationFrame(f); else cv.remove();
+  };
+  requestAnimationFrame(f);
+}
+function starsHTML(n, size = 40) {
+  let s = '';
+  for (let i = 0; i < 3; i++) s += `<svg class="star ${i < n ? 'on' : ''}" style="--d:${.15 + i * .18}s" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}"/></svg>`;
+  return s;
+}
+function showResult({ stars = null, title, text = '', actions = [] }) {
+  $('#mStars').innerHTML = stars === null ? '' : starsHTML(stars);
+  $('#mStars').setAttribute('aria-label', stars === null ? '' : `Gwiazdki: ${stars} z 3`);
+  $('#mTitle').textContent = title;
+  $('#mText').innerHTML = text;
+  const wrap = $('#mActions'); wrap.innerHTML = '';
+  actions.forEach(a => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn wide' + (a.primary ? ' primary' : ''); b.textContent = a.label;
+    b.addEventListener('click', () => { closeModal(); a.fn(); }); wrap.appendChild(b);
+  });
+  $('#modal').hidden = false;
+  const first = wrap.querySelector('button'); if (first) first.focus({ preventScroll: true });
+}
+function closeModal() { $('#modal').hidden = true; }
+const verdict = s => ['Spróbuj jeszcze raz', 'Nieźle, ćwicz dalej', 'Bardzo dobrze!', 'Mistrzostwo!'][s];
+
+/* ---------- przeciąganie (mysz + dotyk) ---------- */
+function dragify(el, o) {
+  el.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    if (o.enabled && !o.enabled()) return;
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY; let ghost = null, moved = false, hover = null;
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    const move = ev => {
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) > 7) {
+        moved = true; ghost = o.ghost(); ghost.classList.add('ghost'); document.body.appendChild(ghost);
+        ghost._w = ghost.offsetWidth; ghost._h = ghost.offsetHeight; el.classList.add('dragging');
+      }
+      if (moved) {
+        ghost.style.transform = `translate(${ev.clientX - ghost._w / 2}px,${ev.clientY - ghost._h / 2}px)`;
+        if (o.hover !== false) {
+          const t = document.elementFromPoint(ev.clientX, ev.clientY), d = t && t.closest('[data-drop]');
+          if (d !== hover) { if (hover) hover.classList.remove('drop-hover'); hover = d; if (hover) hover.classList.add('drop-hover'); }
+        }
+      }
+    };
+    const end = (ev, cancel) => {
+      el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', cn);
+      if (hover) hover.classList.remove('drop-hover');
+      if (moved) { ghost.remove(); el.classList.remove('dragging'); if (!cancel) o.drop(document.elementFromPoint(ev.clientX, ev.clientY), ev.clientX, ev.clientY); }
+      else if (!cancel && o.tap) o.tap();
+    };
+    const up = ev => end(ev, false), cn = ev => end(ev, true);
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', cn);
+  });
+  el.addEventListener('click', e => { if (e.detail === 0 && o.tap) o.tap(); }); // klawiatura
+}
+
+/* ---------- nawigacja ---------- */
+let current = 'home';
+const loops = {};
+function show(id) {
+  if (loops[current]) loops[current].stop();
+  $$('.screen').forEach(s => { s.hidden = s.id !== id; });
+  current = id; closeModal();
+  if (loops[id]) loops[id].start();
+  window.scrollTo(0, 0);
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) show(b.dataset.go); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
+
+/* ================= MENU ================= */
+const ICONS = {
+  fan: '<circle cx="12" cy="12" r="9"/><path d="M12 12c0-4 1-6.5 3-6.5s1.5 4.5-3 6.5zm0 0c4 0 6.5 1 6.5 3s-4.5 1.5-6.5-3zm0 0c0 4-1 6.5-3 6.5s-1.5-4.5 3-6.5zm0 0c-4 0-6.5-1-6.5-3s4.5-1.5 6.5 3z"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.2 3 3.2 15 0 18M12 3c-3.2 3-3.2 15 0 18"/>',
+  scale: '<path d="M12 4v16M8 20h8M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/>',
+  cross: '<path d="M12 3v18M7 8.5h10"/>',
+  bone: '<path d="M16.5 3.5a2.5 2.5 0 0 1 3.6 3.4 2.5 2.5 0 0 1-2.6 3.1l-7.5 7.5a2.5 2.5 0 0 1-3.1 2.6 2.5 2.5 0 0 1-3.4-3.6 2.5 2.5 0 0 1 3-2.6l7.5-7.5a2.5 2.5 0 0 1 2.5-2.9z"/>',
+  chip: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2.5v3.5M15 2.5v3.5M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/>',
+  flask: '<path d="M9 3h6M10 3v6.5L4.8 18.4A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.6L14 9.5V3"/><path d="M7.4 15h9.2"/>',
+  hourglass: '<path d="M6.5 3h11M6.5 21h11M8 3v3.5c0 2.5 4 3.5 4 5.5s-4 3-4 5.5V21M16 3v3.5c0 2.5-4 3.5-4 5.5s4 3 4 5.5V21"/>',
+  heart: '<path d="M12 20s-7.2-4.5-8.7-9C2.2 7.8 4.1 4.8 7.3 4.8c1.9 0 3.4 1 4.7 2.7 1.3-1.7 2.8-2.7 4.7-2.7 3.2 0 5.1 3 4 6.2C19.2 15.5 12 20 12 20z"/><path d="M6.5 12h2.7l1.4-2.4 2.2 4.3 1.3-1.9h3.4"/>',
+  ball: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3v18M5.6 5.6c3 3 3 9.8 0 12.8M18.4 5.6c-3 3-3 9.8 0 12.8"/>',
+};
+const SUBJECTS = [
+  { id: 'polski', name: 'Polski', badge: 'PL', c: '#DC3437' },
+  { id: 'fizyka', name: 'Fizyka', icon: 'fan', c: '#2F86F6' },
+  { id: 'angielski', name: 'Angielski', badge: 'EN', c: '#3B32C4' },
+  { id: 'geografia', name: 'Geografia', icon: 'globe', c: '#11995A' },
+  { id: 'niemiecki', name: 'Niemiecki', badge: 'DE', c: '#3A3352' },
+  { id: 'obywatelska', name: 'Edukacja obywatelska', icon: 'scale', c: '#C2410C', small: true },
+  { id: 'matematyka', name: 'Matematyka', badge: 'π', c: '#7C3AED' },
+  { id: 'religia', name: 'Religia', icon: 'cross', c: '#B7791F' },
+  { id: 'biologia', name: 'Biologia', icon: 'bone', c: '#0E9F8E' },
+  { id: 'informatyka', name: 'Informatyka', icon: 'chip', c: '#334155' },
+  { id: 'chemia', name: 'Chemia', icon: 'flask', c: '#DB2777' },
+  { id: 'historia', name: 'Historia', icon: 'hourglass', c: '#92400E' },
+  { id: 'wf', name: 'Wychowanie fizyczne', icon: 'ball', c: '#E46A22' },
+  { id: 'zdrowotna', name: 'Edukacja zdrowotna', icon: 'heart', c: '#0891B2', small: true },
+];
+function miniStars(n) { let s = ''; for (let i = 0; i < 3; i++) s += `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}" fill="${i < n ? '#FFC93C' : 'rgba(36,26,58,.16)'}" stroke="${i < n ? '#241A3A' : 'none'}" stroke-width="1.6"/></svg>`; return s; }
+function renderHome() {
+  const st = Store.get('stars', {});
+  $('#subjects').innerHTML = SUBJECTS.map(s => `<button type="button" class="subj${s.wide ? ' wide' : ''}" data-subj="${s.id}" style="--c:${s.c}" aria-label="${s.name}, gwiazdki: ${st[s.id] || 0} z 3"><span class="ico">${s.badge ? `<b>${s.badge}</b>` : `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[s.icon]}</svg>`}</span><span class="nm${s.small ? ' sm' : ''}">${s.name}<span class="st">${miniStars(st[s.id] || 0)}</span></span></button>`).join('');
+  const total = SUBJECTS.reduce((a, s) => a + (st[s.id] || 0), 0);
+  $('#totalStars').innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}" fill="#FFC93C"/></svg> ${total} / ${SUBJECTS.length * 3} gwiazdek`;
+  $('#soundBtn').textContent = Sfx.on ? 'Dźwięk: włączony' : 'Dźwięk: wyłączony';
+  $('#soundBtn').setAttribute('aria-pressed', String(Sfx.on));
+}
+$('#subjects').addEventListener('click', e => { const b = e.target.closest('[data-subj]'); if (b) openSubject(b.dataset.subj); });
+$('#soundBtn').addEventListener('click', () => { Sfx.on = !Sfx.on; Store.set('sound', Sfx.on); renderHome(); if (Sfx.on) Sfx.pop(); });
+function openSubject(id) {
+  if (QUIZZES[id]) { Quiz.start(id); return; }
+  ({ polski: Hang, angielski: Eng, niemiecki: Ger, biologia: Bio, chemia: Chem, fizyka: Phys })[id].start();
+}
+
+/* ================= QUIZY ================= */
+const QUIZZES = {
+  matematyka: { title: 'Matematyka', questions: [
+    { q: '2 + 2', a: ['4', '5', '6', '8'], c: 0, big: true, e: 'Dwa plus dwa to cztery.' },
+    { q: '7 · 3', a: ['18', '21', '24', '27'], c: 1, big: true, e: 'Siedem razy trzy to dwadzieścia jeden.' },
+    { q: '15 − 8', a: ['6', '7', '8', '9'], c: 1, big: true, e: '15 − 8 = 7, bo 7 + 8 = 15.' },
+    { q: '36 : 6', a: ['5', '6', '7', '8'], c: 1, big: true, e: '36 : 6 = 6, bo 6 · 6 = 36.' },
+    { q: '10 + 5 · 2', a: ['30', '20', '25', '17'], c: 1, big: true, e: 'Najpierw mnożenie: 5 · 2 = 10. Potem 10 + 10 = 20.' },
+    { q: 'Rozwiąż równanie:<br>log<sub>2</sub> x + log<sub>2</sub>(x − 2) = 3', a: ['x = 4', 'x = −2', 'x = 4 lub x = −2', 'x = 8'], c: 0, boss: true, e: 'Suma logarytmów: log<sub>2</sub>[x(x − 2)] = 3, więc x(x − 2) = 8, czyli x² − 2x − 8 = 0. Pierwiastki to 4 i −2. Logarytm wymaga x &gt; 2, więc zostaje tylko x = 4.' },
+  ] },
+  geografia: { title: 'Geografia', questions: [
+    { q: 'Ile mniej więcej jest państw na świecie?', a: ['54', '195', '120', '250'], c: 1, e: 'Najczęściej podaje się 195: 193 członków ONZ i 2 państwa-obserwatorzy (Watykan i Palestyna).' },
+    { q: 'Która rzeka jest najdłuższa w Polsce?', a: ['Odra', 'Wisła', 'Warta', 'Bug'], c: 1, e: 'Wisła płynie od Beskidu Śląskiego aż do Morza Bałtyckiego.' },
+    { q: 'Jak nazywa się najwyższy szczyt Polski?', a: ['Śnieżka', 'Rysy', 'Giewont', 'Babia Góra'], c: 1, e: 'Rysy w Tatrach mają 2499 m n.p.m.' },
+    { q: 'Z iloma państwami graniczy Polska?', a: ['5', '6', '7', '8'], c: 2, e: 'Niemcy, Czechy, Słowacja, Ukraina, Białoruś, Litwa i Rosja.' },
+    { q: 'Który ocean jest największy?', a: ['Atlantycki', 'Indyjski', 'Spokojny', 'Arktyczny'], c: 2, e: 'Ocean Spokojny (Pacyfik) zajmuje prawie jedną trzecią powierzchni Ziemi.' },
+  ] },
+  obywatelska: { title: 'Edukacja obywatelska', questions: [
+    { q: 'Ilu posłów zasiada w Sejmie RP?', a: ['100', '230', '460', '560'], c: 2, e: 'Sejm liczy 460 posłów, a Senat 100 senatorów.' },
+    { q: 'Na ile lat wybierany jest Prezydent RP?', a: ['4 lata', '5 lat', '6 lat', '7 lat'], c: 1, e: 'Kadencja prezydenta trwa 5 lat. Tę samą osobę można wybrać najwyżej dwa razy.' },
+    { q: 'W którym roku uchwalono obecną Konstytucję RP?', a: ['1989', '1991', '1997', '2004'], c: 2, e: 'Konstytucję uchwalono 2 kwietnia 1997 r.' },
+    { q: 'Od ilu lat można głosować w wyborach w Polsce?', a: ['16', '18', '21', '25'], c: 1, e: 'Prawo głosu ma obywatel, który najpóźniej w dniu wyborów kończy 18 lat.' },
+    { q: 'Kiedy Polska wstąpiła do Unii Europejskiej?', a: ['1995', '1999', '2004', '2007'], c: 2, e: '1 maja 2004 r. Do NATO Polska weszła wcześniej, w 1999 r.' },
+  ] },
+  religia: { title: 'Religia', questions: [
+    { q: 'Ile jest przykazań Bożych?', a: ['7', '10', '12', '5'], c: 1, e: 'Dziesięć przykazań (Dekalog) Mojżesz otrzymał na górze Synaj.' },
+    { q: 'Ilu apostołów wybrał Jezus?', a: ['7', '10', '12', '40'], c: 2, e: 'Dwunastu, m.in. Piotra, Andrzeja i Jana.' },
+    { q: 'W jakim mieście urodził się Jezus?', a: ['Nazaret', 'Betlejem', 'Jerozolima', 'Kafarnaum'], c: 1, e: 'Według Ewangelii Jezus urodził się w Betlejem, a dorastał w Nazarecie.' },
+    { q: 'Kto zbudował arkę i ocalił zwierzęta przed potopem?', a: ['Mojżesz', 'Noe', 'Abraham', 'Dawid'], c: 1, e: 'Historię Noego i potopu opisuje Księga Rodzaju.' },
+    { q: 'Ile jest sakramentów świętych?', a: ['5', '7', '10', '12'], c: 1, e: 'Siedem: chrzest, bierzmowanie, Eucharystia, pokuta, namaszczenie chorych, kapłaństwo i małżeństwo.' },
+  ] },
+  historia: { title: 'Historia', questions: [
+    { q: 'W którym roku odbył się chrzest Polski?', a: ['966', '1025', '1410', '1569'], c: 0, e: 'W 966 r. chrzest przyjął Mieszko I.' },
+    { q: 'Kto był pierwszym koronowanym królem Polski?', a: ['Mieszko I', 'Bolesław Chrobry', 'Kazimierz Wielki', 'Władysław Jagiełło'], c: 1, e: 'Bolesław Chrobry koronował się w 1025 r.' },
+    { q: 'W którym roku rozegrała się bitwa pod Grunwaldem?', a: ['1410', '1525', '1683', '1920'], c: 0, e: '15 lipca 1410 r. wojska polsko-litewskie pokonały Zakon Krzyżacki.' },
+    { q: 'Kiedy wybuchła II wojna światowa?', a: ['1914', '1918', '1939', '1945'], c: 2, e: '1 września 1939 r. Niemcy zaatakowały Polskę.' },
+    { q: 'W którym roku Polska odzyskała niepodległość?', a: ['1791', '1918', '1945', '1989'], c: 1, e: '11 listopada 1918 r. Ten dzień to Narodowe Święto Niepodległości.' },
+  ] },
+  wf: { title: 'Wychowanie fizyczne', questions: [
+    { q: 'Ilu zawodników jednej drużyny gra na boisku w piłce nożnej?', a: ['9', '10', '11', '12'], c: 2, e: 'Jedenastu, razem z bramkarzem.' },
+    { q: 'Ile trwa mecz piłki nożnej bez doliczonego czasu?', a: ['60 minut', '80 minut', '90 minut', '120 minut'], c: 2, e: 'Dwie połowy po 45 minut.' },
+    { q: 'Ile punktów daje celny rzut zza linii 6,75 m w koszykówce?', a: ['1', '2', '3', '4'], c: 2, e: 'To tak zwana „trójka”. Rzut wolny daje 1 punkt.' },
+    { q: 'Ilu zawodników jednej drużyny gra na boisku w siatkówce?', a: ['5', '6', '7', '11'], c: 1, e: 'Sześciu. Libero może zmieniać zawodników z tylnej linii.' },
+    { q: 'Ile kół jest na fladze olimpijskiej?', a: ['4', '5', '6', '7'], c: 1, e: 'Pięć połączonych kół symbolizuje pięć zamieszkanych kontynentów.' },
+  ] },
+  zdrowotna: { title: 'Edukacja zdrowotna', questions: [
+    { q: 'Ile godzin snu na dobę potrzebuje zwykle nastolatek?', a: ['4–5', '6', '8–10', '12–14'], c: 2, e: 'Nastolatkom zaleca się zwykle 8–10 godzin snu. W czasie snu mózg utrwala to, czego się nauczyłeś.' },
+    { q: 'Jaki jest wspólny numer alarmowy w całej Unii Europejskiej?', a: ['997', '112', '999', '911'], c: 1, e: '112 działa w całej UE. Dyspozytor połączy cię z pogotowiem, strażą pożarną lub policją.' },
+    { q: 'Ile ruchu dziennie zaleca WHO dzieciom i młodzieży?', a: ['15 minut', '30 minut', '60 minut', '3 godziny'], c: 2, e: 'Średnio co najmniej 60 minut aktywności o umiarkowanej lub dużej intensywności każdego dnia.' },
+    { q: 'Czego powinno być najwięcej w codziennej diecie?', a: ['Warzyw i owoców', 'Słodyczy', 'Słonych przekąsek', 'Słodzonych napojów'], c: 0, e: 'Warzywa i owoce powinny stanowić mniej więcej połowę tego, co jemy w ciągu dnia, przy czym warzyw więcej niż owoców.' },
+    { q: 'W resuscytacji (RKO) uciśnięcia klatki piersiowej i oddechy ratownicze wykonuje się w proporcji…', a: ['30 : 2', '15 : 1', '10 : 5', '5 : 1'], c: 0, e: '30 uciśnięć na 2 oddechy. Uciskaj mocno i szybko, 100–120 razy na minutę.' },
+  ] },
+  informatyka: { title: 'Informatyka', questions: [
+    { q: 'Która komenda w Linuksie wyświetla zawartość katalogu?', a: ['<code>cd</code>', '<code>ls</code>', '<code>pwd</code>', '<code>rm</code>'], c: 1, e: '<code>ls</code> wypisuje pliki i katalogi. <code>cd</code> zmienia katalog.' },
+    { q: 'Co robi komenda <code>pwd</code> w Linuksie?', a: ['Zmienia hasło', 'Pokazuje bieżący katalog', 'Usuwa plik', 'Wyłącza komputer'], c: 1, e: 'pwd to skrót od „print working directory”, czyli „pokaż katalog roboczy”.' },
+    { q: 'Która komenda uruchamia polecenie z uprawnieniami administratora (root)?', a: ['<code>sudo</code>', '<code>chmod</code>', '<code>mkdir</code>', '<code>cat</code>'], c: 0, e: '<code>sudo</code> („superuser do”) wykonuje polecenie jako root.' },
+    { q: 'Router łączy różne sieci. Na podstawie czego kieruje pakiety?', a: ['Adresów IP', 'Adresów MAC', 'Nazw plików', 'Numerów seryjnych'], c: 0, e: 'Router pracuje w 3. warstwie modelu OSI (sieciowej) i korzysta z adresów IP.' },
+    { q: 'Switch (przełącznik) w sieci lokalnej przesyła ramki na podstawie…', a: ['adresów IP', 'adresów MAC', 'nazw domen', 'haseł Wi‑Fi'], c: 1, e: 'Switch pracuje w 2. warstwie OSI i pamięta, pod którym portem jest dany adres MAC.' },
+  ] },
+};
+const Quiz = {
+  start(key) {
+    const d = QUIZZES[key]; this.key = key; this.i = 0; this.score = 0; this.marks = [];
+    this.qs = d.questions.map(q => { const order = shuffle(q.a.map((_, k) => k)); return Object.assign({}, q, { opts: order.map(k => q.a[k]), correct: order.indexOf(q.c) }); });
+    const h = $('#quizTitle'); h.textContent = d.title; h.classList.toggle('long', d.title.length > 14);
+    show('s-quiz'); this.render();
+  },
+  dots() { $('#quizDots').innerHTML = this.qs.map((_, k) => `<i class="${k in this.marks ? (this.marks[k] ? 'ok' : 'no') : (k === this.i ? 'cur' : '')}"></i>`).join(''); },
+  render() {
+    const q = this.qs[this.i], n = this.qs.length;
+    $('#quizChip').textContent = `${this.score} pkt`; this.dots();
+    $('#qBox').className = 'qbox panel' + (q.big ? ' big' : '') + (q.boss ? ' boss' : '');
+    $('#qNum').textContent = q.boss ? `Pytanie ${this.i + 1} · BOSS · bardzo trudne` : `Pytanie ${this.i + 1} z ${n}`;
+    $('#qText').innerHTML = q.q;
+    const wrap = $('#qAnswers'); wrap.innerHTML = '';
+    q.opts.forEach((t, k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'ans'; b.innerHTML = t; b.addEventListener('click', () => this.answer(k, b)); wrap.appendChild(b); });
+    $('#qExplain').hidden = true; $('#qNext').hidden = true;
+  },
+  answer(k, btn) {
+    const q = this.qs[this.i], btns = $$('#qAnswers .ans'); btns.forEach(b => { b.disabled = true; });
+    const ok = k === q.correct; this.marks[this.i] = ok;
+    if (ok) { this.score++; btn.classList.add('ok'); Sfx.good(); } else { btn.classList.add('no'); btns[q.correct].classList.add('ok'); Sfx.bad(); }
+    btns.forEach((b, j) => { if (j !== k && j !== q.correct) b.classList.add('dim'); });
+    $('#quizChip').textContent = `${this.score} pkt`; this.dots();
+    const ex = $('#qExplain'); ex.innerHTML = `<b>${ok ? 'Dobrze!' : 'Niestety nie.'}</b> ${q.e}`; ex.hidden = false;
+    const nb = $('#qNext'); nb.textContent = this.i === this.qs.length - 1 ? 'Zobacz wynik' : 'Dalej'; nb.hidden = false;
+  },
+  next() { this.i++; if (this.i >= this.qs.length) this.finish(); else { this.render(); window.scrollTo(0, 0); } },
+  finish() {
+    const n = this.qs.length, s = this.score;
+    const stars = s === n ? 3 : s >= Math.ceil(n * .6) ? 2 : s > 0 ? 1 : 0;
+    setStars(this.key, stars);
+    if (stars === 3) { confetti(); Sfx.win(); }
+    const key = this.key, actions = [];
+    if (key === 'informatyka') actions.push({ label: 'Dalej: złóż komputer', primary: true, fn: () => PC.start() });
+    actions.push({ label: 'Jeszcze raz', primary: key !== 'informatyka', fn: () => this.start(key) });
+    actions.push({ label: 'Menu', fn: () => show('home') });
+    showResult({ stars, title: verdict(stars), text: `<p>Wynik: ${s} / ${n}</p>`, actions });
+  },
+};
+$('#qNext').addEventListener('click', () => Quiz.next());
+
+/* ================= POLSKI: WISIELEC ================= */
+const Hang = {
+  WORDS: [
+    { w: 'KSIĄŻKA', h: 'Czytasz ją na lekcji polskiego.' },
+    { w: 'RZECZOWNIK', h: 'Część mowy. Odpowiada na pytania: kto? co?' },
+    { w: 'CZASOWNIK', h: 'Część mowy. Odpowiada na pytanie: co robi?' },
+    { w: 'PRZYMIOTNIK', h: 'Część mowy. Odpowiada na pytania: jaki? jaka? jakie?' },
+    { w: 'MICKIEWICZ', h: 'Nazwisko autora „Pana Tadeusza”.' },
+    { w: 'KOCHANOWSKI', h: 'Nazwisko autora „Trenów” i fraszek.' },
+    { w: 'WIEWIÓRKA', h: 'Rude zwierzątko z puszystym ogonem.' },
+    { w: 'BAŚŃ', h: 'Utwór z czarami i szczęśliwym zakończeniem.' },
+    { w: 'ŻÓŁW', h: 'Powolne zwierzę ze skorupą.' },
+    { w: 'ORTOGRAFIA', h: 'Zasady poprawnej pisowni.' },
+    { w: 'WIERSZ', h: 'Utwór pisany wersami, często z rymami.' },
+  ],
+  PARTS: ['hat', 'armL', 'armR', 'legL', 'legR', 'head'],
+  ROUNDS: 5,
+  init() {
+    if (this.ready) return; this.ready = true;
+    $('#plKeys').innerHTML = 'ĄĆĘŁŃÓŚŹŻ'.split('').map(ch => `<button type="button" class="key" data-k="${ch}">${ch}</button>`).join('');
+    $('#plKeys').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; const inp = $('#plInput'); inp.value += b.dataset.k; inp.focus(); });
+    $('#plForm').addEventListener('submit', e => { e.preventDefault(); const inp = $('#plInput'); this.guess(inp.value); inp.value = ''; });
+    $('#plNext').addEventListener('click', () => this.next());
+  },
+  start() { this.init(); this.list = shuffle(this.WORDS).slice(0, this.ROUNDS); this.idx = 0; this.score = 0; show('s-polski'); this.newWord(); },
+  newWord() {
+    const w = this.list[this.idx]; this.word = w.w; this.found = new Set(); this.tried = []; this.lives = 6; this.over = false;
+    this.PARTS.forEach(p => $('#hp-' + p).classList.remove('gone'));
+    $('#hangFig').classList.remove('happy');
+    $('#plHint').innerHTML = `<b>Podpowiedź:</b> ${w.h}`;
+    $('#plRound').textContent = `Słowo ${this.idx + 1}/${this.ROUNDS}`;
+    $('#plNext').hidden = true; $('#plInput').disabled = false;
+    this.renderSlots(); this.renderUsed(); this.renderLives(); this.mood();
+  },
+  renderSlots(reveal) {
+    $('#plSlots').innerHTML = [...this.word].map(ch => {
+      const vis = this.found.has(ch), miss = reveal && !vis;
+      return `<span class="slot${vis && this.lastHit === ch ? ' show' : ''}${miss ? ' miss' : ''}">${vis || miss ? ch : ''}</span>`;
+    }).join('');
+    $('#plSlots').setAttribute('aria-label', [...this.word].map(ch => this.found.has(ch) ? ch : 'puste').join(' '));
+  },
+  renderUsed() { $('#plUsed').innerHTML = this.tried.length ? 'Użyte: ' + this.tried.map(ch => this.word.includes(ch) ? ch : `<s>${ch}</s>`).join(' ') : ''; },
+  renderLives() { let s = ''; for (let i = 0; i < 6; i++) s += `<svg viewBox="0 0 24 24" class="${i < this.lives ? '' : 'lost'}"><path d="M12 20.5s-7.5-4.6-9.2-9.3C1.7 8 3.6 4.5 7.1 4.5c2 0 3.6 1.1 4.9 2.9 1.3-1.8 2.9-2.9 4.9-2.9 3.5 0 5.4 3.5 4.3 6.7-1.7 4.7-9.2 9.3-9.2 9.3z" fill="#DC3437" stroke="#241A3A" stroke-width="1.6"/></svg>`; $('#plLives').innerHTML = s; $('#plLives').setAttribute('aria-label', `Pozostałe szanse: ${this.lives}`); },
+  mood() { const m = this.lives >= 4 ? 'M89 92 Q96 98 103 92' : this.lives >= 2 ? 'M89 94 L103 94' : 'M89 96 Q96 90 103 96'; $('#hangMouth').setAttribute('d', m); },
+  guess(raw) {
+    if (this.over) return;
+    const g = raw.trim().toLocaleUpperCase('pl-PL').replace(/\s+/g, '');
+    if (!g) { toast('Wpisz literę albo całe słowo'); return; }
+    if (!/^[A-ZĄĆĘŁŃÓŚŹŻ]+$/u.test(g)) { toast('Używaj tylko liter'); return; }
+    this.lastHit = null;
+    if (g.length === 1) {
+      if (this.tried.includes(g)) { toast(`Litera ${g} już była`); return; }
+      this.tried.push(g);
+      if (this.word.includes(g)) {
+        this.found.add(g); this.lastHit = g; Sfx.good(); this.renderSlots();
+        if ([...this.word].every(ch => this.found.has(ch))) this.win();
+      } else { Sfx.bad(); this.loseOne(); }
+    } else if (g === this.word) {
+      [...this.word].forEach(ch => this.found.add(ch)); this.renderSlots(); this.win();
+    } else { Sfx.bad(); toast('To nie to słowo'); this.loseOne(); }
+    this.renderUsed();
+  },
+  loseOne() {
+    const p = this.PARTS[6 - this.lives]; this.lives--;
+    $('#hp-' + p).classList.add('gone'); this.renderLives(); this.mood();
+    const card = $('#hangCard'); card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+    if (this.lives <= 0) this.fail();
+  },
+  win() { this.over = true; this.score++; $('#hangFig').classList.add('happy'); Sfx.win(); toast('Brawo! Słowo odgadnięte', 'good'); this.endWord(); },
+  fail() { this.over = true; this.renderSlots(true); toast(`Ludzik się rozpadł. Słowo: ${this.word}`, 'bad'); this.endWord(); },
+  endWord() { $('#plInput').disabled = true; const b = $('#plNext'); b.hidden = false; b.textContent = this.idx < this.ROUNDS - 1 ? 'Następne słowo' : 'Zobacz wynik'; },
+  next() {
+    this.idx++;
+    if (this.idx < this.ROUNDS) { this.newWord(); return; }
+    const s = this.score, stars = s === 5 ? 3 : s >= 3 ? 2 : s >= 1 ? 1 : 0;
+    setStars('polski', stars); if (stars === 3) confetti();
+    showResult({ stars, title: verdict(stars), text: `<p>Odgadnięte słowa: ${s} / ${this.ROUNDS}</p>`, actions: [{ label: 'Zagraj jeszcze raz', primary: true, fn: () => this.start() }, { label: 'Menu', fn: () => show('home') }] });
+  },
+};
+
+/* ================= ANGIELSKI: KOŃCÓWKI ================= */
+const Eng = {
+  TEXTS: [
+    ['Yesterday Tom ', { s: 'walk', e: 'ed' }, ' to school with his best friend. Now they are ', { s: 'play', e: 'ing' }, ' football in the park. Tom’s sister Anna ', { s: 'sing', e: 's' }, ' in the school choir every Friday. She also runs very ', { s: 'quick', e: 'ly' }, '. Tom is ', { s: 'tall', e: 'er' }, ' than Anna, but she is the ', { s: 'fast', e: 'est' }, ' runner in the whole class.'],
+    ['Last summer we ', { s: 'visit', e: 'ed' }, ' my grandma in the mountains. She always ', { s: 'bake', e: 's' }, ' delicious apple cakes. Every evening we were ', { s: 'fish', e: 'ing' }, ' in the lake. Grandma speaks very ', { s: 'slow', e: 'ly' }, ' and tells long stories. My cousin Kuba is ', { s: 'old', e: 'er' }, ' than me, but I am the ', { s: 'young', e: 'est' }, ' in the family.'],
+  ],
+  init() {
+    if (this.ready) return; this.ready = true;
+    $('#enText').addEventListener('click', e => { const g = e.target.closest('.gap'); if (g) this.tapGap(+g.dataset.gap); });
+    $('#enCheck').addEventListener('click', () => this.check());
+    $('#enClear').addEventListener('click', () => { this.fill = this.fill.map(() => null); this.marks = []; this.selEnd = null; this.selGap = null; this.paint(); });
+  },
+  start() { this.init(); this.ti = 0; this.total = 0; show('s-angielski'); this.load(); },
+  load() {
+    this.segs = this.TEXTS[this.ti]; this.gaps = this.segs.filter(s => typeof s !== 'string');
+    this.fill = this.gaps.map(() => null); this.marks = []; this.selEnd = null; this.selGap = null; this.attempts = 0;
+    $('#enChip').textContent = `Tekst ${this.ti + 1}/${this.TEXTS.length}`;
+    let gi = 0;
+    $('#enText').innerHTML = this.segs.map(s => typeof s === 'string' ? s : `<span class="word">${s.s}<button type="button" class="gap" data-gap="${gi++}" data-drop="en" aria-label="Końcówka słowa ${s.s}"></button></span>`).join('');
+    const tray = $('#enTray'); tray.innerHTML = '';
+    shuffle(this.gaps.map(g => g.e)).forEach(e => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'end'; b.dataset.end = e; b.textContent = '-' + e;
+      dragify(b, {
+        enabled: () => !b.classList.contains('used'),
+        ghost: () => { const g = b.cloneNode(true); g.classList.remove('sel'); return g; },
+        drop: (t) => { const gap = t && t.closest('.gap'); if (gap) this.place(+gap.dataset.gap, e); },
+        tap: () => this.tapEnd(e),
+      });
+      tray.appendChild(b);
+    });
+    this.paint();
+  },
+  tapEnd(e) {
+    if (this.selGap !== null) { this.place(this.selGap, e); return; }
+    this.selEnd = this.selEnd === e ? null : e; this.paint();
+  },
+  tapGap(i) {
+    if (this.selEnd) { this.place(i, this.selEnd); return; }
+    if (this.fill[i]) { this.fill[i] = null; delete this.marks[i]; this.selGap = null; Sfx.pop(); this.paint(); return; }
+    this.selGap = this.selGap === i ? null : i; this.paint();
+  },
+  place(i, e) {
+    const prev = this.fill.indexOf(e); if (prev >= 0) { this.fill[prev] = null; delete this.marks[prev]; }
+    this.fill[i] = e; delete this.marks[i]; this.selEnd = null; this.selGap = null; Sfx.pop(); this.paint();
+  },
+  paint() {
+    $$('#enText .gap').forEach((g, i) => {
+      const f = this.fill[i]; g.textContent = f || '…'; g.className = 'gap' + (f ? ' filled' : '') + (this.selGap === i ? ' sel' : '') + (i in this.marks ? (this.marks[i] ? ' ok' : ' no') : '');
+    });
+    $$('#enTray .end').forEach(b => { b.classList.toggle('used', this.fill.includes(b.dataset.end)); b.classList.toggle('sel', this.selEnd === b.dataset.end); });
+  },
+  check() {
+    if (this.fill.some(f => !f)) { toast('Uzupełnij wszystkie 6 luk'); return; }
+    this.attempts++;
+    this.marks = this.fill.map((f, i) => f === this.gaps[i].e);
+    const good = this.marks.filter(Boolean).length; this.paint();
+    if (good < this.gaps.length) { Sfx.bad(); toast(`Dobrze: ${good} z ${this.gaps.length}. Popraw czerwone luki.`, 'bad'); return; }
+    Sfx.win(); const st = this.attempts === 1 ? 3 : this.attempts === 2 ? 2 : 1; this.total += st;
+    const rules = '<div class="note"><b>-ed</b> czas przeszły · <b>-ing</b> czynność trwająca · <b>-s</b> he/she/it w Present Simple · <b>-ly</b> przysłówek · <b>-er</b> stopień wyższy · <b>-est</b> stopień najwyższy</div>';
+    if (this.ti < this.TEXTS.length - 1) {
+      showResult({ stars: st, title: 'Tekst gotowy!', text: `<p>Próby: ${this.attempts}</p>${rules}`, actions: [{ label: 'Następny tekst', primary: true, fn: () => { this.ti++; this.load(); } }, { label: 'Menu', fn: () => show('home') }] });
+    } else {
+      const fin = Math.round(this.total / this.TEXTS.length); setStars('angielski', fin); if (fin === 3) confetti();
+      showResult({ stars: fin, title: verdict(fin), text: `<p>Oba teksty uzupełnione.</p>${rules}`, actions: [{ label: 'Zagraj jeszcze raz', primary: true, fn: () => this.start() }, { label: 'Menu', fn: () => show('home') }] });
+    }
+  },
+};
+
+/* ================= NIEMIECKI: DOPASUJ ================= */
+const Ger = {
+  SETS: [
+    { name: 'Dom i szkoła', pairs: [['dom', 'das Haus'], ['pies', 'der Hund'], ['kot', 'die Katze'], ['szkoła', 'die Schule'], ['książka', 'das Buch']] },
+    { name: 'Jedzenie', pairs: [['jabłko', 'der Apfel'], ['woda', 'das Wasser'], ['chleb', 'das Brot'], ['mleko', 'die Milch'], ['ser', 'der Käse']] },
+    { name: 'Rodzina', pairs: [['matka', 'die Mutter'], ['ojciec', 'der Vater'], ['brat', 'der Bruder'], ['siostra', 'die Schwester'], ['przyjaciel', 'der Freund']] },
+  ],
+  COLORS: ['#3B32C4', '#E46A22', '#0E9F8E', '#DB2777', '#7C3AED'],
+  init() {
+    if (this.ready) return; this.ready = true;
+    $('#deLeft').addEventListener('click', e => { const b = e.target.closest('.mp'); if (b) this.click('l', +b.dataset.i); });
+    $('#deRight').addEventListener('click', e => { const b = e.target.closest('.mp'); if (b) this.click('r', +b.dataset.i); });
+    $('#deCheck').addEventListener('click', () => this.check());
+    $('#deClear').addEventListener('click', () => { this.links = {}; this.marks = {}; this.sel = null; this.paint(); });
+    if ('ResizeObserver' in window) new ResizeObserver(() => { if (current === 's-niemiecki') this.drawLines(); }).observe($('#deBoard'));
+  },
+  start() { this.init(); this.si = 0; this.total = 0; show('s-niemiecki'); this.load(); },
+  load() {
+    const set = this.SETS[this.si]; this.left = set.pairs.map((p, i) => ({ t: p[0], i })); this.right = shuffle(set.pairs.map((p, i) => ({ t: p[1], i })));
+    this.links = {}; this.marks = {}; this.sel = null; this.attempts = 0;
+    $('#deChip').textContent = `${this.si + 1}/${this.SETS.length}`;
+    $('#deSub').textContent = `Połącz pary · temat: ${set.name}`;
+    $('#deLeft').innerHTML = this.left.map((w, k) => `<button type="button" class="mp pl" data-i="${k}">${w.t}</button>`).join('');
+    $('#deRight').innerHTML = this.right.map((w, k) => { const [art, ...rest] = w.t.split(' '); return `<button type="button" class="mp de" data-i="${k}"><span class="art ${art}">${art}</span> ${rest.join(' ')}</button>`; }).join('');
+    this.paint();
+  },
+  rightOf(l) { return this.links[l]; },
+  leftOf(r) { const e = Object.entries(this.links).find(([, v]) => v === r); return e ? +e[0] : undefined; },
+  click(side, i) {
+    const linkOf = (sd, k) => sd === 'l' ? (k in this.links ? k : undefined) : this.leftOf(k);
+    const unlink = (sd, k) => { const l = linkOf(sd, k); if (l !== undefined) { delete this.links[l]; delete this.marks[l]; } };
+    if (this.sel && this.sel.side !== side) {
+      unlink(side, i); unlink(this.sel.side, this.sel.i);
+      const l = side === 'l' ? i : this.sel.i, r = side === 'r' ? i : this.sel.i;
+      this.links[l] = r; this.sel = null; Sfx.pop(); this.paint(); return;
+    }
+    if (linkOf(side, i) !== undefined) { unlink(side, i); this.sel = { side, i }; Sfx.pop(); this.paint(); return; }
+    this.sel = (this.sel && this.sel.side === side && this.sel.i === i) ? null : { side, i }; this.paint();
+  },
+  paint() {
+    $$('#deLeft .mp').forEach((b, k) => { b.className = 'mp pl' + (this.sel && this.sel.side === 'l' && this.sel.i === k ? ' sel' : '') + (k in this.marks ? (this.marks[k] ? ' ok' : ' no') : ''); });
+    $$('#deRight .mp').forEach((b, k) => { const l = this.leftOf(k); b.className = 'mp de' + (this.sel && this.sel.side === 'r' && this.sel.i === k ? ' sel' : '') + (l !== undefined && l in this.marks ? (this.marks[l] ? ' ok' : ' no') : ''); });
+    requestAnimationFrame(() => this.drawLines());
+  },
+  drawLines() {
+    const board = $('#deBoard'), svg = $('#deLines'), br = board.getBoundingClientRect(); let s = '';
+    for (const [l, r] of Object.entries(this.links)) {
+      const a = $(`#deLeft [data-i="${l}"]`), b = $(`#deRight [data-i="${r}"]`); if (!a || !b) continue;
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      const x1 = ra.right - br.left - 2, y1 = ra.top + ra.height / 2 - br.top, x2 = rb.left - br.left + 2, y2 = rb.top + rb.height / 2 - br.top;
+      const col = l in this.marks ? (this.marks[l] ? '#11995A' : '#DC3437') : this.COLORS[l];
+      s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#241A3A" stroke-width="7.5" stroke-linecap="round"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="4" stroke-linecap="round"/><circle cx="${x1}" cy="${y1}" r="5.5" fill="${col}" stroke="#241A3A" stroke-width="2"/><circle cx="${x2}" cy="${y2}" r="5.5" fill="${col}" stroke="#241A3A" stroke-width="2"/>`;
+    }
+    svg.setAttribute('viewBox', `0 0 ${br.width} ${br.height}`); svg.innerHTML = s;
+  },
+  check() {
+    if (Object.keys(this.links).length < this.left.length) { toast('Połącz wszystkie pary'); return; }
+    this.attempts++;
+    this.marks = {}; for (const [l, r] of Object.entries(this.links)) this.marks[l] = this.left[l].i === this.right[r].i;
+    const good = Object.values(this.marks).filter(Boolean).length; this.paint();
+    if (good < this.left.length) {
+      Sfx.bad(); toast(`Dobrze: ${good} z ${this.left.length}. Złe połączenia znikną.`, 'bad');
+      setTimeout(() => { for (const l of Object.keys(this.marks)) if (!this.marks[l]) { delete this.links[l]; delete this.marks[l]; } this.paint(); }, 1300);
+      return;
+    }
+    Sfx.win(); const st = this.attempts === 1 ? 3 : this.attempts === 2 ? 2 : 1; this.total += st;
+    if (this.si < this.SETS.length - 1) {
+      showResult({ stars: st, title: 'Wszystkie pary!', text: `<p>Temat: ${this.SETS[this.si].name}</p>`, actions: [{ label: 'Następny zestaw', primary: true, fn: () => { this.si++; this.load(); } }, { label: 'Menu', fn: () => show('home') }] });
+    } else {
+      const fin = Math.round(this.total / this.SETS.length); setStars('niemiecki', fin); if (fin === 3) confetti();
+      showResult({ stars: fin, title: verdict(fin), text: '<p>Trzy zestawy słówek zrobione. Pamiętaj: rodzajnik ucz się razem z rzeczownikiem.</p>', actions: [{ label: 'Zagraj jeszcze raz', primary: true, fn: () => this.start() }, { label: 'Menu', fn: () => show('home') }] });
+    }
+  },
+};
+
+/* ================= BIOLOGIA: SZKIELET ================= */
+const BONE = '#F3EAD8', OUT = '#8E7C62', HOLE = '#241D14';
+const bone = (d, w) => `<path d="${d}" fill="none" stroke="${OUT}" stroke-width="${w + 2.4}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${BONE}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+const knob = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${BONE}" stroke="${OUT}" stroke-width="1.2"/>`;
+const mirror = s => `<g transform="translate(300 0) scale(-1 1)">${s}</g>`;
+const SK = {
+  czaszka: () => `<path d="M150 12 C134 12 126 24 126 37 C126 47 130 53 135 56 L136 64 C140 70 160 70 164 64 L165 56 C170 53 174 47 174 37 C174 24 166 12 150 12 Z" fill="${BONE}" stroke="${OUT}" stroke-width="1.4"/><path d="M131 46 Q136 49 139.5 46.5 M169 46 Q164 49 160.5 46.5" fill="none" stroke="${OUT}" stroke-width=".9"/><ellipse cx="141.5" cy="37" rx="5.5" ry="6.2" fill="${HOLE}"/><ellipse cx="158.5" cy="37" rx="5.5" ry="6.2" fill="${HOLE}"/><path d="M150 44 L146.5 51 Q150 53 153.5 51 Z" fill="${HOLE}"/><path d="M140 58.5 H160 M143 55.5 v6 M146.5 55.5 v6.5 M150 55.5 v6.5 M153.5 55.5 v6.5 M157 55.5 v6" stroke="${OUT}" stroke-width=".9"/>`,
+  kregoslup: () => { let s = ''; for (let i = 0; i < 18; i++) { const y = 70 + i * 9.5, w = i < 7 ? 10 : i < 12 ? 12 : 14; s += `<rect x="${150 - w / 2}" y="${y}" width="${w}" height="7.2" rx="2.4" fill="${BONE}" stroke="${OUT}" stroke-width="1.1"/>`; } return s; },
+  klatka: () => {
+    const W = [22, 28, 32, 34, 35, 34, 31]; let half = bone('M147 85 C136 80 125 80 114 84', 4);
+    W.forEach((w, i) => { const y = 93 + i * 8.6; half += bone(`M147 ${y} C${150 - w * .55} ${y - 4} ${150 - w} ${y - 1} ${150 - w} ${y + 9} C${150 - w} ${y + 15} ${153 - w} ${y + 18} ${158 - w} ${y + 19}`, 3); });
+    return half + mirror(half) + `<path d="M145.5 88 H154.5 L155.5 128 L150 139 L144.5 128 Z" fill="${BONE}" stroke="${OUT}" stroke-width="1.2"/>`;
+  },
+  miednica: () => { const wing = `<path d="M147 226 C134 213 118 215 116 230 C115 243 124 254 136 259 C141 260 145 256 146 250 Z" fill="${BONE}" stroke="${OUT}" stroke-width="1.3"/><path d="M140 230 C130 228 124 234 126 243" fill="none" stroke="${OUT}" stroke-width=".9"/>`; return wing + mirror(wing) + bone('M135 258 Q150 271 165 258', 4) + `<path d="M143 222 H157 L154.5 245 L150 252 L145.5 245 Z" fill="#E7DCC5" stroke="${OUT}" stroke-width="1.2"/>`; },
+  rekaL: () => knob(114, 89, 5.5) + bone('M113 93 L105 154', 6.5) + knob(105, 157, 4.2) + bone('M107 161 L101 220', 3) + bone('M102 161 L95 219', 3) + `<path d="M91.5 221 L104 222 L105 235 L90.5 234 Z" fill="${BONE}" stroke="${OUT}" stroke-width="1.1"/>` + bone('M92 236 L88.5 251', 2) + bone('M95.5 236.5 L93.5 254', 2) + bone('M99 237 L99 255', 2) + bone('M102.5 236.5 L104 252', 2) + bone('M104.5 226 L110 237', 2.2),
+  nogaL: () => knob(138, 253, 5.5) + bone('M137 257 L131 329', 7.5) + knob(131, 333, 5) + `<ellipse cx="131" cy="338" rx="4.4" ry="5" fill="#FFF8EA" stroke="${OUT}" stroke-width="1.1"/>` + bone('M131 345 L130 397', 6) + bone('M138.5 347 L137.5 395', 2.6) + knob(131, 400, 3.6) + `<path d="M125 401 L138 401 L142 408 L121 408 Z" fill="${BONE}" stroke="${OUT}" stroke-width="1.1"/>` + bone('M122 409 L120.5 414', 2) + bone('M126 409 L125.5 415', 2) + bone('M130.5 409 L130.5 415.5', 2) + bone('M135 409 L135.5 415', 2) + bone('M139.5 409 L141 414', 2),
+};
+const Bio = {
+  KIND: { czaszka: 'Czaszka', kregoslup: 'Kręgosłup', klatka: 'Klatka piersiowa', miednica: 'Miednica', reka: 'Kończyna górna', noga: 'Kończyna dolna' },
+  SLOTS: {
+    kregoslup: { kind: 'kregoslup', bb: [141, 68, 18, 173], z: 1 },
+    rekaL: { kind: 'reka', bb: [84, 82, 38, 178], z: 2, base: 'rekaL' },
+    rekaP: { kind: 'reka', bb: [178, 82, 38, 178], z: 2, base: 'rekaL', mirror: true },
+    nogaL: { kind: 'noga', bb: [116, 246, 34, 172], z: 2, base: 'nogaL' },
+    nogaP: { kind: 'noga', bb: [150, 246, 34, 172], z: 2, base: 'nogaL', mirror: true },
+    klatka: { kind: 'klatka', bb: [110, 76, 80, 92], z: 3 },
+    miednica: { kind: 'miednica', bb: [112, 210, 76, 66], z: 4 },
+    czaszka: { kind: 'czaszka', bb: [124, 10, 52, 62], z: 6 },
+  },
+  LABELS: [
+    ['L', 'Czaszka', 30, 136, 30], ['L', 'Żebra', 116, 120, 112], ['L', 'Kręgosłup', 196, 150, 196], ['L', 'Miednica', 236, 121, 236], ['L', 'Kość udowa', 290, 133, 290], ['L', 'Rzepka', 337, 128, 338], ['L', 'Kość piszczelowa', 371, 130, 371], ['L', 'Kości stopy', 406, 123, 406],
+    ['R', 'Obojczyk', 76, 175, 82], ['R', 'Mostek', 104, 153, 104], ['R', 'Kość ramienna', 128, 191, 124], ['R', 'Kość łokciowa', 176, 196, 184], ['R', 'Kość promieniowa', 204, 203, 204], ['R', 'Kości ręki', 246, 201, 246], ['R', 'Kość strzałkowa', 371, 162.5, 371],
+  ],
+  draw(id) { const s = this.SLOTS[id], m = SK[s.base || id](); return s.mirror ? mirror(m) : m; },
+  init() {
+    if (this.ready) return; this.ready = true;
+    const ids = Object.keys(this.SLOTS);
+    $('#bioGuide').innerHTML = `<g opacity=".17">${ids.map(id => this.draw(id)).join('')}</g>`;
+    $('#bioLabels').innerHTML = this.LABELS.map(([side, t, ty, px, py]) => { const tx = side === 'L' ? 74 : 226; return `<line x1="${side === 'L' ? tx + 3 : tx - 3}" y1="${ty - 3}" x2="${px}" y2="${py}" stroke="#BFD6FF" stroke-width=".8" opacity=".85"/><circle cx="${px}" cy="${py}" r="1.8" fill="#FFC93C"/><text x="${tx}" y="${ty}" text-anchor="${side === 'L' ? 'end' : 'start'}" font-family="Nunito, sans-serif" font-weight="800" font-size="8.2" fill="#FFFFFF">${t}</text>`; }).join('');
+    $('#bioStage').addEventListener('click', e => { if (this.sel) { const el = this.sel; this.dropAt(el, e.clientX, e.clientY); } });
+    $('#bioReset').addEventListener('click', () => this.start());
+    $('#bioNames').addEventListener('click', () => this.labels(!$('#bioLabels').hasAttribute('hidden') ? false : true));
+  },
+  start() {
+    this.init(); this.filled = {}; this.mistakes = 0; this.sel = null;
+    $$('#bioStage .placed').forEach(n => n.remove());
+    this.labels(false); $('#bioNames').disabled = true;
+    const kinds = ['czaszka', 'kregoslup', 'klatka', 'miednica', 'reka', 'reka', 'noga', 'noga'];
+    const tray = $('#bioTray'); tray.innerHTML = '';
+    shuffle(kinds).forEach(kind => {
+      const rep = { reka: 'rekaL', noga: 'nogaL' }[kind] || kind, bb = this.SLOTS[rep].bb;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'bp'; b.dataset.kind = kind; b.setAttribute('aria-label', this.KIND[kind]);
+      b.style.setProperty('--r', `${Math.round(rand(-14, 14))}deg`);
+      b.innerHTML = `<svg viewBox="${bb[0] - 3} ${bb[1] - 3} ${bb[2] + 6} ${bb[3] + 6}">${SK[rep]()}</svg>`;
+      dragify(b, {
+        hover: false,
+        enabled: () => !b.classList.contains('gone'),
+        ghost: () => {
+          const k = $('#bioStage').clientWidth / 300, g = document.createElement('div');
+          g.innerHTML = `<svg viewBox="${bb[0]} ${bb[1]} ${bb[2]} ${bb[3]}" width="${bb[2] * k}" height="${bb[3] * k}" style="display:block;overflow:visible">${SK[rep]()}</svg>`; return g;
+        },
+        drop: (_, x, y) => this.dropAt(b, x, y),
+        tap: () => { this.sel = this.sel === b ? null : b; $$('#bioTray .bp').forEach(n => n.classList.toggle('sel', n === this.sel)); if (this.sel) toast(`Wybrano: ${this.KIND[kind]}. Kliknij miejsce na planszy.`); },
+      });
+      tray.appendChild(b);
+    });
+    this.chip(); show('s-biologia');
+  },
+  chip() { $('#bioChip').textContent = `${Object.keys(this.filled).length}/8`; },
+  labels(on) { $('#bioLabels').toggleAttribute('hidden', !on); $('#bioNames').textContent = on ? 'Ukryj nazwy kości' : 'Pokaż nazwy kości'; },
+  dropAt(el, x, y) {
+    const r = $('#bioStage').getBoundingClientRect();
+    if (x < r.left || x > r.right || y < r.top || y > r.bottom) return;
+    const sx = (x - r.left) * 300 / r.width, sy = (y - r.top) * 420 / r.height, kind = el.dataset.kind;
+    let best = null, bd = 1e9, near = null, nd = 1e9;
+    for (const [id, s] of Object.entries(this.SLOTS)) {
+      if (this.filled[id]) continue;
+      const d = Math.hypot(sx - (s.bb[0] + s.bb[2] / 2), sy - (s.bb[1] + s.bb[3] / 2));
+      if (s.kind === kind && d < bd) { bd = d; best = id; }
+      if (d < nd) { nd = d; near = id; }
+    }
+    if (best && bd < 38) { this.place(best, el); return; }
+    this.mistakes++; Sfx.bad();
+    el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+    if (near && nd < 38 && this.SLOTS[near].kind !== kind) toast(`W tym miejscu jest: ${this.KIND[this.SLOTS[near].kind].toLowerCase()}`, 'bad');
+    else toast('Jeszcze nie tutaj. Patrz na jasny zarys kości.', 'bad');
+  },
+  place(id, el) {
+    const s = this.SLOTS[id]; this.filled[id] = true;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 300 420'); svg.setAttribute('class', 'placed'); svg.style.zIndex = s.z; svg.innerHTML = this.draw(id);
+    $('#bioStage').insertBefore(svg, $('#bioLabels'));
+    el.classList.add('gone'); el.classList.remove('sel'); if (this.sel === el) this.sel = null;
+    Sfx.good(); toast(`${this.KIND[s.kind]} na miejscu!`, 'good'); this.chip();
+    if (Object.keys(this.filled).length === 8) setTimeout(() => this.done(), 600);
+  },
+  done() {
+    const st = this.mistakes <= 2 ? 3 : this.mistakes <= 5 ? 2 : 1; setStars('biologia', st); confetti(); Sfx.win();
+    $('#bioNames').disabled = false;
+    showResult({ stars: st, title: 'Szkielet złożony!', text: `<p>Pomyłki: ${this.mistakes}</p><div class="note">Dorosły człowiek ma około 206 kości. Najdłuższa z nich to kość udowa.</div>`, actions: [{ label: 'Pokaż nazwy kości', primary: true, fn: () => this.labels(true) }, { label: 'Ułóż jeszcze raz', fn: () => this.start() }, { label: 'Menu', fn: () => show('home') }] });
+  },
+};
+
+/* ================= CHEMIA: REAKCJE ================= */
+const Chem = {
+  W: 360, H: 340, CX: 180, BENCH: 268, SB: 308, S: .8,
+  REAG: {
+    ocet: { name: 'Ocet', f: 'CH₃COOH', col: '#F3DFA2', cap: '#C08A2B' },
+    soda: { name: 'Soda oczyszczona', f: 'NaHCO₃', col: '#FFFFFF', cap: '#9AA3AF' },
+    h2o2: { name: 'Woda utleniona', f: 'H₂O₂', col: '#CDEBFF', cap: '#2F86F6' },
+    ki: { name: 'Jodek potasu', f: 'KI', col: '#FFE08A', cap: '#E4A11B' },
+    fenol: { name: 'Fenolo­ftaleina', f: 'wskaźnik', col: '#F4F4F4', cap: '#DB2777' },
+    naoh: { name: 'Zasada sodowa', f: 'NaOH', col: '#DCE6FF', cap: '#3B32C4' },
+    cuso4: { name: 'Siarczan miedzi', f: 'CuSO₄', col: '#3FA9F5', cap: '#0F6FB8' },
+    nh3: { name: 'Amoniak', f: 'NH₃', col: '#E5F7EC', cap: '#11995A' },
+    luminol: { name: 'Luminol', f: 'C₈H₇N₃O₂', col: '#FFF2B3', cap: '#7C3AED' },
+  },
+  REACT: [
+    { id: 'wulkan', need: ['ocet', 'soda'], fx: 'foam', name: 'Wulkan z piany', eq: 'NaHCO₃ + CH₃COOH → CH₃COONa + H₂O + CO₂↑', txt: 'Soda reaguje z kwasem octowym. Powstaje dwutlenek węgla, którego bąbelki tworzą pianę.', hint: 'kwas z kuchni + biały proszek do pieczenia' },
+    { id: 'pasta', need: ['h2o2', 'ki'], fx: 'paste', name: 'Pasta do zębów dla słonia', eq: '2 H₂O₂ → 2 H₂O + O₂↑   (katalizator: KI)', txt: 'Jodek potasu bardzo przyspiesza rozkład wody utlenionej. Uwolniony tlen wypycha z kolby ogromną kolumnę piany.', hint: 'woda utleniona + katalizator z jodem' },
+    { id: 'roz', need: ['fenol', 'naoh'], fx: 'pink', name: 'Malinowa zasada', eq: 'fenoloftaleina + OH⁻ → barwa malinowa', txt: 'Fenoloftaleina to wskaźnik. W roztworze zasadowym (pH powyżej ok. 8) barwi się na malinowo.', hint: 'wskaźnik + mocna zasada' },
+    { id: 'znika', need: ['fenol', 'naoh', 'ocet'], fx: 'fade', name: 'Znikający róż', eq: 'NaOH + CH₃COOH → CH₃COONa + H₂O', txt: 'Najpierw zasada barwi wskaźnik na malinowo. Potem kwas zobojętnia zasadę, pH spada i kolor znika.', hint: 'malinowa zasada… i dolej do niej kwasu' },
+    { id: 'lazur', need: ['cuso4', 'nh3'], fx: 'deep', name: 'Lazurowy błękit', eq: 'Cu²⁺ + 4 NH₃ → [Cu(NH₃)₄]²⁺', txt: 'Jony miedzi tworzą z amoniakiem związek kompleksowy o intensywnie granatowej barwie.', hint: 'niebieska sól miedzi + gaz o ostrym zapachu' },
+    { id: 'blask', need: ['luminol', 'h2o2'], fx: 'glow', name: 'Zimne światło', eq: 'luminol + H₂O₂ → 3‑aminoftalan + N₂ + światło', txt: 'Utleniony luminol oddaje energię jako niebieskie światło, a nie jako ciepło. To chemiluminescencja. W prawdziwym doświadczeniu roztwór musi być zasadowy.', hint: 'świecąca substancja + woda utleniona' },
+    { id: 'super', need: ['luminol', 'h2o2', 'cuso4'], fx: 'glow2', name: 'Super blask', eq: 'luminol + H₂O₂ —(Cu²⁺)→ jasne światło', txt: 'Jony miedzi działają jak katalizator, więc świecenie jest dużo jaśniejsze.', hint: 'zimne światło + jony miedzi jako katalizator' },
+    { id: 'zobojet', need: ['naoh', 'ocet'], fx: 'warm', name: 'Zobojętnianie', eq: 'NaOH + CH₃COOH → CH₃COONa + H₂O', txt: 'Kwas i zasada zobojętniają się. Powstają sól i woda, a roztwór lekko się ogrzewa.', hint: 'kwas + zasada' },
+  ],
+  LEVELS: [268, 236, 206, 178],
+  init() {
+    if (this.ready) return; this.ready = true;
+    this.cv = $('#chemCanvas'); this.c = this.cv.getContext('2d');
+    $('#chemTubes').innerHTML = Object.entries(this.REAG).map(([id, r]) => `<button type="button" class="tube" data-r="${id}"><svg viewBox="0 0 16 44" aria-hidden="true"><rect x="3" y="1" width="10" height="4.5" rx="1.5" fill="${r.cap}" stroke="#241A3A" stroke-width="1"/><path d="M4 5.5 V36 a4 4 0 0 0 8 0 V5.5" fill="#FFFFFF" stroke="#241A3A" stroke-width="1.6"/><path d="M4.9 19 V36 a3.1 3.1 0 0 0 6.2 0 V19 Z" fill="${r.col === '#FFFFFF' || r.col === '#F4F4F4' ? '#E9E4DA' : r.col}"/></svg><span><b>${r.name}</b><small>${r.f}</small></span></button>`).join('');
+    $('#chemTubes').addEventListener('click', e => { const b = e.target.closest('.tube'); if (b) this.add(b.dataset.r); });
+    $('#chemMix').addEventListener('click', () => this.mix());
+    $('#chemEmpty').addEventListener('click', () => { this.empty(); Sfx.t(260, .2, 'sine', .05); });
+  },
+  start() { this.init(); this.empty(); this.renderList(); show('s-chemia'); },
+  run() { this.resize(); cancelAnimationFrame(this.raf); this.last = performance.now(); const f = now => { const dt = Math.min(.04, (now - this.last) / 1000); this.last = now; this.update(dt); this.draw(); this.raf = requestAnimationFrame(f); }; this.raf = requestAnimationFrame(f); },
+  halt() { cancelAnimationFrame(this.raf); },
+  resize() { const w = this.cv.clientWidth || 360, dpr = Math.min(2, devicePixelRatio || 1); this.cv.width = Math.round(w * dpr); this.cv.height = Math.round(w * this.H / this.W * dpr); this.k = this.cv.width / this.W; },
+  hex(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); },
+  empty() {
+    this.added = []; this.mixed = false; this.ps = []; this.fx = null; this.acc = 0; this.t = this.t || 0;
+    this.level = this.levelT = 268; this.alpha = this.alphaT = 0; this.col = [240, 240, 250]; this.colT = [240, 240, 250]; this.colRate = 3;
+    this.dark = this.darkT = 0; this.halo = this.haloT = 0; $('#chemInfo').hidden = true; this.paintUI();
+  },
+  paintUI() {
+    $$('#chemTubes .tube').forEach(b => b.classList.toggle('in', this.added.includes(b.dataset.r)));
+    $('#chemAdded').innerHTML = this.added.map(id => `<span class="addchip" style="--cap:${this.REAG[id].cap}"><i></i>${this.REAG[id].name.replace('­', '')}</span>`).join('');
+  },
+  add(id) {
+    if (this.mixed) { toast('Najpierw wylej mieszaninę'); return; }
+    if (this.added.includes(id)) { toast('Ten odczynnik już jest w kolbie'); return; }
+    if (this.added.length >= 3) { toast('W kolbie są już 3 odczynniki. Kliknij „Mieszaj”.'); return; }
+    this.added.push(id); const n = this.added.length; Sfx.pop();
+    const rgb = this.hex(this.REAG[id].col);
+    for (let i = 0; i < 16; i++) this.ps.push({ k: 'drop', x: this.CX + rand(-2.5, 2.5), y: -8 - i * 9, vy: 260, r: rand(2.2, 3.4), c: `rgb(${rgb})` });
+    this.levelT = this.LEVELS[n];
+    const cols = this.added.map(a => this.hex(this.REAG[a].col));
+    this.colT = [0, 1, 2].map(k => cols.reduce((s, c) => s + c[k], 0) / cols.length); this.colRate = 3; this.alphaT = .5;
+    this.paintUI();
+  },
+  find() {
+    const S = new Set(this.added);
+    const exact = this.REACT.find(r => r.need.length === S.size && r.need.every(x => S.has(x)));
+    if (exact) return exact;
+    return this.REACT.filter(r => r.need.every(x => S.has(x))).sort((a, b) => b.need.length - a.need.length)[0] || null;
+  },
+  mix() {
+    if (this.mixed) { toast('Ta mieszanina już przereagowała. Wylej ją i spróbuj nowej.'); return; }
+    if (this.added.length < 2) { toast('Dodaj co najmniej 2 odczynniki'); return; }
+    this.mixed = true; const r = this.find(); this.fx = { type: r ? r.fx : 'none', t: 0 }; this.acc = 0;
+    const info = $('#chemInfo');
+    if (r) {
+      const found = Store.get('chem', []), isNew = !found.includes(r.id);
+      if (isNew) { Store.set('chem', found.concat(r.id)); Sfx.win(); } else Sfx.good();
+      const extra = this.added.filter(x => !r.need.includes(x)).map(x => this.REAG[x].name.replace('­', ''));
+      info.innerHTML = `<h3>${r.name}${isNew ? '<span class="new">nowe odkrycie</span>' : ''}</h3><p class="eq">${r.eq}</p><p>${r.txt}</p>${extra.length ? `<p style="opacity:.75">${extra.join(', ')}: nie brał(a) udziału w reakcji.</p>` : ''}`;
+      this.renderList();
+      if (isNew) { const n = Store.get('chem', []).length; const st = n >= 6 ? 3 : n >= 4 ? 2 : n >= 2 ? 1 : 0; if (st) setStars('chemia', st); if (n === this.REACT.length) { confetti(); toast('Odkryłeś wszystkie reakcje!', 'good'); } }
+    } else {
+      Sfx.t(300, .2, 'sine', .05);
+      info.innerHTML = '<h3>Brak widocznej reakcji</h3><p>Nie ma piany, zmiany koloru ani światła. Wylej kolbę i spróbuj innego połączenia. Podpowiedzi są na liście poniżej.</p>';
+    }
+    info.hidden = false;
+    const fx = this.fx.type;
+    if (fx === 'foam') { this.colT = [255, 250, 236]; this.alphaT = .92; this.levelT = 120; this.colRate = 2; }
+    if (fx === 'paste') { this.colT = [255, 216, 102]; this.alphaT = .95; this.levelT = 112; this.colRate = 2; }
+    if (fx === 'pink' || fx === 'fade') { this.colT = [214, 31, 122]; this.alphaT = .88; this.colRate = 1.6; }
+    if (fx === 'deep') { this.colT = [29, 63, 209]; this.alphaT = .92; this.colRate = .9; }
+    if (fx === 'glow') { this.colT = [127, 227, 255]; this.alphaT = .92; this.darkT = .8; this.haloT = 1; this.colRate = 2; }
+    if (fx === 'glow2') { this.colT = [170, 240, 255]; this.alphaT = .95; this.darkT = .88; this.haloT = 1.8; this.colRate = 2; }
+    if (fx === 'warm') { this.colT = [255, 232, 196]; this.alphaT = .6; this.colRate = 1; }
+  },
+  renderList() {
+    const found = Store.get('chem', []);
+    $('#chemCount').textContent = `${found.length} / ${this.REACT.length}`; $('#chemChip').textContent = `${found.length}/${this.REACT.length}`;
+    $('#chemList').innerHTML = this.REACT.map(r => { const f = found.includes(r.id); return `<li class="${f ? 'found' : ''}"><i>${f ? '✓' : '?'}</i><div><b>${f ? r.name : '???'}</b><span>${f ? r.need.map(x => this.REAG[x].name.replace('­', '')).join(' + ') : 'Podpowiedź: ' + r.hint}</span></div></li>`; }).join('');
+  },
+  spawn(rate, fn) { this.acc += rate; while (this.acc >= 1) { this.ps.push(fn()); this.acc--; } },
+  halfW(y) { return y < 112 ? 20 : y < 244 ? 20 + (y - 112) / 132 * 72 : 92; },
+  update(dt) {
+    this.t += dt; const CX = this.CX;
+    this.level += (this.levelT - this.level) * Math.min(1, dt * 3);
+    this.alpha += (this.alphaT - this.alpha) * Math.min(1, dt * 3);
+    for (let k = 0; k < 3; k++) this.col[k] += (this.colT[k] - this.col[k]) * Math.min(1, dt * this.colRate);
+    this.dark += (this.darkT - this.dark) * Math.min(1, dt * 2.5);
+    this.halo += (this.haloT - this.halo) * Math.min(1, dt * 2.5);
+    if (this.added.length && Math.random() < dt * (this.fx && this.fx.type !== 'none' ? 16 : 3)) this.ps.push({ k: 'bub', x: CX + rand(-62, 62), y: 260, r: rand(1.5, 4), vy: -rand(30, 75) });
+    const f = this.fx;
+    if (f) {
+      f.t += dt; const T = f.t;
+      if (f.type === 'foam' && T < 2.8) this.spawn(dt * 120, () => ({ k: 'foam', x: CX + rand(-12, 12), y: 30, vx: rand(-95, 95), vy: rand(-300, -130), r: rand(6, 12), c: Math.random() < .5 ? '#FFFDF4' : '#FBEFD2', life: rand(4.5, 6.5) }));
+      if (f.type === 'paste' && T < 3.2) { const stripe = ['#FFE066', '#FF8E53', '#FF5E7E', '#FFFFFF'][Math.floor(T * 5) % 4]; this.spawn(dt * 130, () => ({ k: 'foam', x: CX + rand(-10, 10), y: 30, vx: rand(-34, 34), vy: rand(-470, -310), r: rand(9, 16), c: stripe, life: rand(5, 7) })); }
+      if ((f.type === 'pink' || f.type === 'fade' || f.type === 'deep') && T < 1.8) {
+        const c = f.type === 'deep' ? '20,40,170' : '214,31,122';
+        this.spawn(dt * 14, () => ({ k: 'ink', x: CX + rand(-40, 40), y: this.level + rand(2, 16), r: 3, vr: rand(18, 30), c, life: 1.8 }));
+      }
+      if ((f.type === 'pink' || f.type === 'deep') && T < 3) this.spawn(dt * 10, () => ({ k: 'spark', x: CX + rand(-60, 60), y: rand(this.level + 10, 255), vx: rand(-8, 8), vy: -rand(20, 50), r: rand(1.5, 3), c: f.type === 'deep' ? '#9FD8FF' : '#FFC2E0', life: rand(1, 2) }));
+      if (f.type === 'fade' && T > 2.6 && !f.p2) { f.p2 = true; this.colT = [246, 242, 255]; this.alphaT = .4; this.colRate = .9; toast('Kwas zobojętnił zasadę: kolor znika'); }
+      if (f.type === 'fade' && T > 2.6 && T < 5) this.spawn(dt * 6, () => ({ k: 'steam', x: CX + rand(-8, 8), y: 30, vx: rand(-10, 10), vy: -rand(20, 40), r: 5, vr: 9, life: 2.2 }));
+      if (f.type === 'warm' && T < 4) this.spawn(dt * 10, () => ({ k: 'steam', x: CX + rand(-8, 8), y: 30, vx: rand(-10, 10), vy: -rand(22, 45), r: 5, vr: 10, life: 2.4 }));
+      if (f.type === 'glow' || f.type === 'glow2') this.spawn(dt * (f.type === 'glow2' ? 34 : 14), () => ({ k: 'spark', x: CX + rand(-80, 80), y: rand(this.level, 262), vx: rand(-10, 10), vy: -rand(15, 45), r: rand(1.2, 3.2), c: f.type === 'glow2' ? '#E6FBFF' : '#8FE6FF', life: rand(1, 2.4), glow: true }));
+    }
+    for (const p of this.ps) {
+      p.age = (p.age || 0) + dt;
+      if (p.k === 'bub') { p.y += p.vy * dt; p.x += Math.sin(p.age * 6 + p.r) * 10 * dt; if (p.y < this.level + 3) p.dead = true; }
+      else if (p.k === 'drop') { p.vy += 900 * dt; p.y += p.vy * dt; if (p.y > this.level) p.dead = true; }
+      else if (p.k === 'foam') {
+        p.vy += 520 * dt; p.vx *= 1 - .5 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.y > 36 && p.vy > 0) { const lim = this.halfW(p.y) + p.r * .55 + 2, dx = p.x - CX; if (Math.abs(dx) < lim) { const s = Math.sign(dx) || (Math.random() < .5 ? -1 : 1); p.x = CX + s * lim; p.vx = s * Math.max(Math.abs(p.vx), 30 + (p.y > 112 ? p.vy * .5 : 0)); p.vy *= .7; } }
+        if (p.y + p.r > this.BENCH) { p.y = this.BENCH - p.r; p.vy *= -.12; p.vx *= .82; }
+        if (p.x < -90 || p.x > this.W + 90 || p.age > p.life) p.dead = true;
+      }
+      else if (p.k === 'ink') { p.r += p.vr * dt; p.y += 10 * dt; if (p.age > p.life) p.dead = true; }
+      else if (p.k === 'spark') { p.x += p.vx * dt; p.y += p.vy * dt; if (p.age > p.life) p.dead = true; }
+      else if (p.k === 'steam') { p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt; if (p.age > p.life) p.dead = true; }
+    }
+    this.ps = this.ps.filter(p => !p.dead); if (this.ps.length > 900) this.ps.splice(0, this.ps.length - 900);
+  },
+  flask(c, i) {
+    const X = this.CX; c.beginPath(); c.moveTo(X - 20 + i, 36); c.lineTo(X - 20 + i, 112); c.lineTo(X - 92 + i, 244); c.quadraticCurveTo(X - 99 + i, 266 - i, X - 76, 266 - i);
+    c.lineTo(X + 76, 266 - i); c.quadraticCurveTo(X + 99 - i, 266 - i, X + 92 - i, 244); c.lineTo(X + 20 - i, 112); c.lineTo(X + 20 - i, 36);
+  },
+  draw() {
+    const c = this.c, W = this.W, H = this.H, CX = this.CX;
+    c.setTransform(this.k, 0, 0, this.k, 0, 0); c.globalCompositeOperation = 'source-over';
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#302B72'); g.addColorStop(1, '#1B1846'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(255,255,255,.05)'; c.lineWidth = 1;
+    for (let y = 30; y < this.SB; y += 30) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    for (let x = 0; x < W; x += 30) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, this.SB); c.stroke(); }
+    c.fillStyle = '#7A4E2A'; c.fillRect(0, this.SB, W, H - this.SB); c.fillStyle = '#A56D3E'; c.fillRect(0, this.SB, W, 5);
+    if (this.dark > .01) { c.fillStyle = `rgba(4,4,18,${this.dark})`; c.fillRect(0, 0, W, H); }
+    c.save(); c.translate(CX, this.SB); c.scale(this.S, this.S); c.translate(-CX, -this.BENCH);
+    if (this.halo > .01) {
+      const pulse = 1 + Math.sin(this.t * 3) * .08, rr = 150 * Math.min(2, this.halo) * pulse;
+      const rg = c.createRadialGradient(CX, 215, 8, CX, 215, rr); rg.addColorStop(0, `rgba(120,225,255,${.6 * Math.min(1, this.halo)})`); rg.addColorStop(1, 'rgba(120,225,255,0)');
+      c.globalCompositeOperation = 'lighter'; c.fillStyle = rg; c.fillRect(-100, -200, W + 200, H + 200);
+      if (this.halo > 1.2) { c.save(); c.translate(CX, 205); c.rotate(this.t * .3); c.fillStyle = 'rgba(180,240,255,.07)'; for (let i = 0; i < 10; i++) { c.rotate(Math.PI / 5); c.beginPath(); c.moveTo(0, 0); c.lineTo(-14, -260); c.lineTo(14, -260); c.fill(); } c.restore(); }
+      c.globalCompositeOperation = 'source-over';
+    }
+    if (this.alpha > .01) {
+      c.save(); this.flask(c, 3); c.clip();
+      c.fillStyle = `rgba(${this.col.map(Math.round).join(',')},${this.alpha})`;
+      c.beginPath(); c.moveTo(60, 280); c.lineTo(60, this.level); for (let x = 60; x <= 300; x += 8) c.lineTo(x, this.level + Math.sin(x * .05 + this.t * 3) * 1.8); c.lineTo(300, 280); c.fill();
+      for (const p of this.ps) {
+        if (p.k === 'ink') { const a = Math.max(0, .55 * (1 - p.age / p.life)); const rg = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); rg.addColorStop(0, `rgba(${p.c},${a})`); rg.addColorStop(1, `rgba(${p.c},0)`); c.fillStyle = rg; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); }
+        else if (p.k === 'bub') { c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.stroke(); }
+      }
+      c.restore();
+    }
+    c.save(); this.flask(c, 0); c.fillStyle = 'rgba(255,255,255,.06)'; c.fill(); c.lineWidth = 3; c.lineJoin = 'round'; c.strokeStyle = 'rgba(232,242,255,.9)'; c.stroke(); c.restore();
+    c.fillStyle = 'rgba(232,242,255,.9)'; c.beginPath(); c.roundRect ? c.roundRect(CX - 27, 29, 54, 9, 4) : c.rect(CX - 27, 29, 54, 9); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.32)'; c.lineWidth = 4; c.lineCap = 'round'; c.beginPath(); c.moveTo(CX + 44, 150); c.lineTo(CX + 70, 228); c.stroke();
+    c.font = '600 8px "JetBrains Mono", monospace'; c.fillStyle = 'rgba(255,255,255,.6)'; c.strokeStyle = 'rgba(255,255,255,.6)'; c.lineWidth = 1.2;
+    [[236, '50 ml'], [206, '100 ml'], [178, '150 ml']].forEach(([y, t]) => { const x = CX - this.halfW(y) + 6; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 10, y); c.stroke(); c.fillText(t, x + 13, y + 3); });
+    for (const p of this.ps) {
+      if (p.k === 'drop') { c.fillStyle = p.c; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); }
+      else if (p.k === 'foam') { const a = Math.min(1, (p.life - p.age) / 1); c.globalAlpha = Math.max(0, a); c.fillStyle = p.c; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(p.x - p.r * .35, p.y - p.r * .35, p.r * .28, 0, 7); c.fill(); c.globalAlpha = 1; }
+      else if (p.k === 'steam') { c.fillStyle = `rgba(255,255,255,${.22 * (1 - p.age / p.life)})`; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); }
+      else if (p.k === 'spark') { const a = Math.max(0, 1 - p.age / p.life); if (p.glow) c.globalCompositeOperation = 'lighter'; c.fillStyle = p.c; c.globalAlpha = a; c.beginPath(); c.moveTo(p.x, p.y - p.r * 2); c.lineTo(p.x + p.r * .6, p.y); c.lineTo(p.x, p.y + p.r * 2); c.lineTo(p.x - p.r * .6, p.y); c.closePath(); c.fill(); c.beginPath(); c.moveTo(p.x - p.r * 2, p.y); c.lineTo(p.x, p.y + p.r * .6); c.lineTo(p.x + p.r * 2, p.y); c.lineTo(p.x, p.y - p.r * .6); c.closePath(); c.fill(); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
+    }
+    c.restore();
+    if (!this.added.length) { c.font = '800 15px Nunito, sans-serif'; c.textAlign = 'center'; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillText('Kliknij probówkę, aby wlać odczynnik', CX, 330); c.textAlign = 'left'; }
+  },
+};
+loops['s-chemia'] = { start: () => Chem.run(), stop: () => Chem.halt() };
+
+/* ================= FIZYKA: WENTYLATOR I KOSZ ================= */
+/*PHYS-START*/
+const PhysCore = (() => {
+  const W = 360, H = 560, FLOOR = 532, R = 13, G = 980, C = 5.5;
+  const LEVELS = [
+    { ball: [60, 519], hoop: { side: 'L', x: 22, y: 260 }, fans: [{ x: 290, y: 460, a: -128, u: 1050, range: 300, w0: 34 }] },
+    { ball: [40, 519], hoop: { side: 'R', x: 338, y: 270 }, fans: [{ x: 130, y: 500, a: -62, u: 1050, range: 240, w0: 30 }] },
+    { ball: [50, 519], hoop: { side: 'L', x: 22, y: 290 }, fans: [{ x: 240, y: 505, a: -90, u: 1100, range: 240, w0: 28 }, { x: 332, y: 130, a: 170, u: 950, range: 260, w0: 30 }] },
+  ];
+  function hoop(h) {
+    const dir = h.side === 'L' ? 1 : -1, front = h.x + dir * 58;
+    return { board: h.side === 'L' ? { x0: h.x - 7, x1: h.x, y0: h.y - 84, y1: h.y + 14 } : { x0: h.x, x1: h.x + 7, y0: h.y - 84, y1: h.y + 14 }, back: h.x, front, y: h.y, lo: Math.min(h.x, front), hi: Math.max(h.x, front), side: h.side };
+  }
+  function wind(f, x, y) {
+    const a = f.a * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), dx = x - f.x, dy = y - f.y;
+    const along = dx * ca + dy * sa; if (along < 0 || along > f.range) return null;
+    const perp = Math.abs(-dx * sa + dy * ca), hw = f.w0 + along * .22; if (perp > hw) return null;
+    const u = f.u * (1 - .55 * along / f.range) * (1 - .3 * perp / hw);
+    return [ca * u, sa * u];
+  }
+  function circle(s, cx, cy, cr, e) {
+    const dx = s.x - cx, dy = s.y - cy, d = Math.hypot(dx, dy), m = R + cr;
+    if (d >= m || d === 0) return false;
+    const nx = dx / d, ny = dy / d; s.x = cx + nx * m; s.y = cy + ny * m;
+    const vn = s.vx * nx + s.vy * ny; if (vn < 0) { s.vx -= (1 + e) * vn * nx; s.vy -= (1 + e) * vn * ny; }
+    return true;
+  }
+  function rect(s, r, e) { return circle(s, Math.max(r.x0, Math.min(s.x, r.x1)), Math.max(r.y0, Math.min(s.y, r.y1)), 0, e); }
+  function launch(lv, vx, vy) { const b = LEVELS[lv].ball; return { x: b[0], y: b[1], vx, vy, t: 0, rest: 0, slow: 0, scored: false, done: false, angle: 0 }; }
+  function step(s, lv, dt) {
+    const L = LEVELS[lv], hp = hoop(L.hoop);
+    let ax = 0, ay = G;
+    for (const f of L.fans) { const w = wind(f, s.x, s.y); if (w) { ax += C * (w[0] - s.vx); ay += C * (w[1] - s.vy); } }
+    s.vx += ax * dt; s.vy += ay * dt;
+    s.vx *= 1 - .06 * dt; s.vy *= 1 - .06 * dt;
+    const py = s.y; s.x += s.vx * dt; s.y += s.vy * dt; s.t += dt;
+    if (s.x < R) { s.x = R; s.vx = Math.abs(s.vx) * .6; }
+    if (s.x > W - R) { s.x = W - R; s.vx = -Math.abs(s.vx) * .6; }
+    if (s.y < R) { s.y = R; s.vy = Math.abs(s.vy) * .5; }
+    if (s.y > FLOOR - R) { s.y = FLOOR - R; if (s.vy > 0) s.vy = -s.vy * .45; if (Math.abs(s.vy) < 70) s.vy = 0; s.vx *= Math.pow(.3, dt); }
+    rect(s, hp.board, .45);
+    circle(s, hp.front, hp.y, 3, .45);
+    for (const f of L.fans) circle(s, f.x, f.y, 24, .4);
+    if (!s.scored && py < hp.y && s.y >= hp.y && s.vy > 0 && s.x > hp.lo + 3 && s.x < hp.hi - 3) s.scored = true;
+    const sp = Math.hypot(s.vx, s.vy), onFloor = s.y >= FLOOR - R - .5;
+    if (onFloor && sp < 30) s.rest += dt; else s.rest = 0;
+    if (sp < 40) s.slow += dt; else s.slow = 0;
+    if (s.rest > .4 || s.slow > 1.2 || s.t > 8) s.done = true;
+    s.angle += s.vx * dt / R;
+  }
+  return { W, H, FLOOR, R, G, LEVELS, hoop, wind, launch, step };
+})();
+/*PHYS-END*/
+const Phys = {
+  init() {
+    if (this.cv) return; this.cv = $('#physCanvas'); this.c = this.cv.getContext('2d'); this.time = 0; const cv = this.cv;
+    cv.addEventListener('pointerdown', e => { if (this.mode !== 'aim') return; e.preventDefault(); const p = this.pt(e); this.aim = { sx: p.x, sy: p.y, x: p.x, y: p.y }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+    cv.addEventListener('pointermove', e => { if (!this.aim) return; const p = this.pt(e); this.aim.x = p.x; this.aim.y = p.y; });
+    cv.addEventListener('pointerup', () => { if (!this.aim) return; const v = this.vel(); this.aim = null; if (v) this.throwBall(v[0], v[1]); });
+    cv.addEventListener('pointercancel', () => { this.aim = null; });
+    $('#physReset').addEventListener('click', () => { if (this.mode === 'fly') this.place(); });
+  },
+  start() { this.init(); this.lv = 0; this.stars = []; this.resetLevel(); show('s-fizyka'); },
+  resetLevel() { this.shots = 0; this.place(); this.hud(); },
+  place() { const b = PhysCore.LEVELS[this.lv].ball; this.s = { x: b[0], y: b[1], vx: 0, vy: 0, angle: 0 }; this.mode = 'aim'; this.aim = null; this.pop = null; this.trail = []; },
+  hud() { $('#physChip').textContent = `Poziom ${this.lv + 1}/3`; $('#physShots').textContent = `Rzuty: ${this.shots}`; },
+  pt(e) { const r = this.cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * PhysCore.W / r.width, y: (e.clientY - r.top) * PhysCore.H / r.height }; },
+  vel() { let dx = this.aim.sx - this.aim.x, dy = this.aim.sy - this.aim.y; const len = Math.hypot(dx, dy); if (len < 12) return null; const m = Math.min(len, 150) / len; return [dx * m * 6.4, dy * m * 6.4]; },
+  throwBall(vx, vy) { this.s = PhysCore.launch(this.lv, vx, vy); this.mode = 'fly'; this.shots++; this.hud(); this.trail = []; Sfx.t(320, .09, 'sine', .06); },
+  run() { this.resize(); cancelAnimationFrame(this.raf); this.last = performance.now(); const f = now => { const dt = Math.min(.033, (now - this.last) / 1000); this.last = now; this.update(dt); this.draw(); this.raf = requestAnimationFrame(f); }; this.raf = requestAnimationFrame(f); },
+  halt() { cancelAnimationFrame(this.raf); },
+  resize() { const w = this.cv.clientWidth || 360, dpr = Math.min(2, devicePixelRatio || 1); this.cv.width = Math.round(w * dpr); this.cv.height = Math.round(w * PhysCore.H / PhysCore.W * dpr); this.k = this.cv.width / PhysCore.W; },
+  update(dt) {
+    this.time += dt;
+    if (this.mode === 'fly' || this.mode === 'scored') {
+      for (let i = 0; i < 4; i++) PhysCore.step(this.s, this.lv, dt / 4);
+      this.trail.push([this.s.x, this.s.y]); if (this.trail.length > 16) this.trail.shift();
+      if (this.mode === 'fly' && this.s.scored) { this.mode = 'scored'; this.scoredAt = this.time; this.pop = { t: 0 }; Sfx.win(); confetti(); }
+      if (this.mode === 'scored' && this.time - this.scoredAt > 1.3) { this.mode = 'done'; this.levelDone(); }
+      else if (this.mode === 'fly' && this.s.done) { Sfx.bad(); toast('Pudło! Zmień kierunek albo siłę rzutu.'); this.place(); }
+    }
+    if (this.pop) this.pop.t += dt;
+  },
+  levelDone() {
+    const st = this.shots <= 1 ? 3 : this.shots <= 3 ? 2 : 1; this.stars[this.lv] = st;
+    if (this.lv < PhysCore.LEVELS.length - 1) {
+      const tips = ['Na następnym poziomie kosz jest po drugiej stronie.', 'Teraz dwa wentylatory: jeden podnosi piłkę, drugi pcha ją do kosza.'];
+      showResult({ stars: st, title: `Poziom ${this.lv + 1} zaliczony!`, text: `<p>Rzuty: ${this.shots}</p><div class="note">${tips[this.lv]}</div>`, actions: [{ label: 'Następny poziom', primary: true, fn: () => { this.lv++; this.resetLevel(); } }, { label: 'Menu', fn: () => show('home') }] });
+    } else {
+      const fin = Math.round(this.stars.reduce((a, b) => a + b, 0) / this.stars.length); setStars('fizyka', fin);
+      showResult({ stars: fin, title: verdict(fin), text: '<p>Wszystkie 3 poziomy zaliczone.</p><div class="note">Strumień powietrza działa na piłkę siłą. Gdy jest silniejsza od ciężaru piłki, piłka unosi się do góry.</div>', actions: [{ label: 'Zagraj od nowa', primary: true, fn: () => this.start() }, { label: 'Menu', fn: () => show('home') }] });
+    }
+  },
+  draw() {
+    const c = this.c, { W, H, FLOOR, R, G } = PhysCore, L = PhysCore.LEVELS[this.lv], hp = PhysCore.hoop(L.hoop), s = this.s, T = this.time;
+    c.setTransform(this.k, 0, 0, this.k, 0, 0);
+    c.fillStyle = '#FFF2E2'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(36,26,58,.05)'; c.lineWidth = 1;
+    for (let y = 40; y < FLOOR - 70; y += 40) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    c.fillStyle = '#FFE3C4'; c.fillRect(0, FLOOR - 70, W, 70); c.fillStyle = '#F4B98A'; c.fillRect(0, FLOOR - 73, W, 4);
+    c.fillStyle = '#E7A35E'; c.fillRect(0, FLOOR, W, H - FLOOR);
+    c.strokeStyle = 'rgba(120,60,20,.3)'; for (let x = -20; x < W; x += 48) { c.beginPath(); c.moveTo(x + (Math.floor(x / 48) % 2) * 12, FLOOR + 14); c.lineTo(x + 40, FLOOR + 14); c.stroke(); }
+    c.fillStyle = '#241A3A'; c.fillRect(0, FLOOR, W, 3);
+    for (const f of L.fans) {
+      const a = f.a * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca, hw0 = f.w0, hw1 = f.w0 + f.range * .22;
+      c.beginPath(); c.moveTo(f.x + px * hw0, f.y + py * hw0); c.lineTo(f.x + ca * f.range + px * hw1, f.y + sa * f.range + py * hw1); c.lineTo(f.x + ca * f.range - px * hw1, f.y + sa * f.range - py * hw1); c.lineTo(f.x - px * hw0, f.y - py * hw0); c.closePath();
+      const g = c.createLinearGradient(f.x, f.y, f.x + ca * f.range, f.y + sa * f.range); g.addColorStop(0, 'rgba(59,50,196,.17)'); g.addColorStop(1, 'rgba(59,50,196,0)'); c.fillStyle = g; c.fill();
+      c.lineCap = 'round'; c.lineWidth = 2;
+      for (let i = 0; i < 18; i++) {
+        const u = (T * .55 + i / 18) % 1, along = 30 + u * (f.range - 30), hw = hw0 + along * .22, off = (((i * 53) % 97) / 97 - .5) * 1.6 * hw;
+        const x = f.x + ca * along + px * off, y = f.y + sa * along + py * off;
+        c.strokeStyle = `rgba(59,50,196,${.5 * (1 - u)})`; c.beginPath(); c.moveTo(x, y); c.lineTo(x + ca * 22, y + sa * 22); c.stroke();
+      }
+    }
+    for (const f of L.fans) {
+      const m = [{ d: f.x, x: 0, y: f.y }, { d: W - f.x, x: W, y: f.y }, { d: FLOOR - f.y, x: f.x, y: FLOOR }, { d: f.y, x: f.x, y: 0 }].sort((a, b) => a.d - b.d)[0];
+      c.strokeStyle = '#241A3A'; c.lineWidth = 6; c.lineCap = 'round'; c.beginPath(); c.moveTo(f.x, f.y); c.lineTo(m.x, m.y); c.stroke();
+      const a = f.a * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+      c.fillStyle = '#241A3A'; c.beginPath(); c.moveTo(f.x + ca * 36, f.y + sa * 36); c.lineTo(f.x + ca * 27 - sa * 8, f.y + sa * 27 + ca * 8); c.lineTo(f.x + ca * 27 + sa * 8, f.y + sa * 27 - ca * 8); c.closePath(); c.fill();
+      c.fillStyle = '#FFF5E9'; c.lineWidth = 3; c.beginPath(); c.arc(f.x, f.y, 24, 0, 7); c.fill(); c.stroke();
+      c.save(); c.translate(f.x, f.y); c.rotate(T * 16); c.fillStyle = '#5C54E0';
+      for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.beginPath(); c.ellipse(0, -11, 5.5, 10, .5, 0, 7); c.fill(); }
+      c.restore(); c.fillStyle = '#241A3A'; c.beginPath(); c.arc(f.x, f.y, 4, 0, 7); c.fill();
+    }
+    const b = hp.board, wallX = hp.side === 'L' ? 0 : W;
+    c.strokeStyle = '#241A3A'; c.lineWidth = 4; c.beginPath(); c.moveTo(wallX, b.y0 + 30); c.lineTo((b.x0 + b.x1) / 2, b.y0 + 30); c.stroke();
+    c.fillStyle = '#FFFFFF'; c.lineWidth = 2.5; c.beginPath(); c.rect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0); c.fill(); c.stroke();
+    c.fillStyle = '#DC3437'; c.fillRect(b.x0 + 1.5, hp.y - 30, b.x1 - b.x0 - 3, 26);
+    if (this.trail) this.trail.forEach(([x, y], i) => { c.fillStyle = `rgba(240,122,42,${.04 + i * .012})`; c.beginPath(); c.arc(x, y, R * (.4 + i / 40), 0, 7); c.fill(); });
+    if (this.mode === 'aim') {
+      if (this.aim) {
+        const v = this.vel(); let dx = this.aim.x - this.aim.sx, dy = this.aim.y - this.aim.sy; const len = Math.hypot(dx, dy); if (len > 150) { dx *= 150 / len; dy *= 150 / len; }
+        c.strokeStyle = 'rgba(36,26,58,.55)'; c.lineWidth = 3; c.setLineDash([6, 5]); c.beginPath(); c.moveTo(s.x, s.y); c.lineTo(s.x + dx, s.y + dy); c.stroke(); c.setLineDash([]);
+        if (v) {
+          for (let i = 1; i <= 13; i++) { const t = i * .04, x = s.x + v[0] * t, y = s.y + v[1] * t + .5 * G * t * t; c.fillStyle = `rgba(59,50,196,${.9 - i * .055})`; c.beginPath(); c.arc(x, y, 3.6 - i * .14, 0, 7); c.fill(); }
+          const pw = Math.round(Math.hypot(v[0], v[1]) / 960 * 100);
+          c.font = '800 14px Nunito, sans-serif'; c.fillStyle = '#241A3A'; c.textAlign = 'center'; c.fillText(`Siła ${pw}%`, Math.min(W - 44, Math.max(44, s.x + dx)), Math.min(H - 8, Math.max(24, s.y + dy + (dy > 0 ? 26 : -16)))); c.textAlign = 'left';
+        }
+      } else if (this.shots === 0) {
+        const bob = Math.sin(T * 4) * 4;
+        c.font = '800 15px Nunito, sans-serif'; c.fillStyle = '#241A3A'; c.textAlign = 'center';
+        c.fillText('Pociągnij do tyłu i puść', Math.min(W - 100, Math.max(100, s.x + 60)), s.y - 46 + bob); c.textAlign = 'left';
+        c.strokeStyle = '#241A3A'; c.lineWidth = 2.5; c.beginPath(); c.arc(s.x, s.y, R + 9 + bob * .5, 0, 7); c.stroke();
+      }
+    }
+    c.save(); c.translate(s.x, s.y); c.rotate(s.angle || 0);
+    c.fillStyle = '#F07A2A'; c.strokeStyle = '#241A3A'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, R, 0, 7); c.fill(); c.stroke();
+    c.lineWidth = 1.4; c.beginPath(); c.moveTo(-R, 0); c.lineTo(R, 0); c.moveTo(0, -R); c.lineTo(0, R); c.stroke();
+    c.beginPath(); c.arc(-R * 1.25, 0, R * .9, -.85, .85); c.stroke(); c.beginPath(); c.arc(R * 1.25, 0, R * .9, Math.PI - .85, Math.PI + .85); c.stroke();
+    c.restore();
+    const lo = hp.lo, hi = hp.hi, y = hp.y, bot = y + 40, ia = lo + 10, ib = hi - 10;
+    c.strokeStyle = 'rgba(36,26,58,.6)'; c.lineWidth = 1.3;
+    for (let i = 0; i <= 6; i++) { const t = i / 6; c.beginPath(); c.moveTo(lo + (hi - lo) * t, y); c.lineTo(ia + (ib - ia) * t, bot); c.stroke(); }
+    for (let j = 1; j <= 3; j++) { const k = j * 12 / 40, yy = y + j * 12, xl = lo + (ia - lo) * k, xr = hi + (ib - hi) * k; c.beginPath(); c.moveTo(xl, yy); for (let i = 1; i <= 6; i++) c.lineTo(xl + (xr - xl) * i / 6, yy + (i % 2 ? 3 : 0)); c.stroke(); }
+    c.strokeStyle = '#DC3437'; c.lineWidth = 4; c.beginPath(); c.ellipse((lo + hi) / 2, y, (hi - lo) / 2, 4, 0, 0, Math.PI * 2); c.stroke();
+    if (this.pop) {
+      const p = Math.min(1, this.pop.t / .35), sc = p < 1 ? .5 + p * .7 : 1.2 - Math.min(.2, (this.pop.t - .35) * .4);
+      c.save(); c.translate(W / 2, 110); c.scale(sc, sc); c.font = '800 54px "Baloo 2", sans-serif'; c.textAlign = 'center'; c.lineJoin = 'round';
+      c.lineWidth = 8; c.strokeStyle = '#241A3A'; c.strokeText('KOSZ!', 0, 0); c.fillStyle = '#FFC93C'; c.fillText('KOSZ!', 0, 0); c.restore(); c.textAlign = 'left';
+    }
+  },
+};
+loops['s-fizyka'] = { start: () => Phys.run(), stop: () => Phys.halt() };
+
+/* ================= INFORMATYKA: SKŁADANIE PC ================= */
+const fanBlades = (cx, cy, r, col) => `<g class="spin">${[0, 90, 180, 270].map(a => `<ellipse cx="${cx}" cy="${cy - r * .48}" rx="${r * .24}" ry="${r * .46}" fill="${col}" transform="rotate(${a} ${cx} ${cy})"/>`).join('')}</g><circle cx="${cx}" cy="${cy}" r="${r * .18}" fill="#3E4454"/>`;
+const PC = {
+  SLOTS: { mobo: [50, 24, 180, 206], gpu: [60, 158, 190, 28], cpu: [110, 58, 44, 44], ram: [172, 40, 24, 90], psu: [22, 258, 112, 58], ssd: [166, 272, 80, 32] },
+  NAMES: { mobo: 'Płyta główna', cpu: 'Procesor', ram: 'Pamięć RAM', gpu: 'Karta graficzna', psu: 'Zasilacz', ssd: 'Dysk SSD' },
+  LABEL: { mobo: 'Płyta główna', cpu: 'CPU', ram: 'RAM', gpu: 'PCIe · karta graficzna', psu: 'Zasilacz', ssd: 'SSD' },
+  ON_MOBO: ['cpu', 'ram', 'gpu'],
+  svg(id) {
+    const [, , w, h] = this.SLOTS[id];
+    const body = {
+      mobo: `<rect x="1" y="1" width="178" height="204" rx="5" fill="#1F5C55" stroke="#0D302C" stroke-width="2"/><path d="M14 112 H70 V128 M24 196 H120 M150 18 V8 H172 M162 120 V190 M60 196 V176 H100 M30 80 H52" stroke="#2E8378" stroke-width="1.6" fill="none"/><rect x="0" y="12" width="10" height="66" rx="1" fill="#59606E"/><rect x="14" y="8" width="40" height="14" rx="2" fill="#8792A2"/><rect x="14" y="26" width="13" height="40" rx="2" fill="#8792A2"/><rect x="58" y="32" width="48" height="48" rx="3" fill="#12403A" stroke="#D2B464" stroke-width="1.6"/><path d="M64 40h36M64 48h36M64 56h36M64 64h36M64 72h36" stroke="#2C6A61"/><rect x="122" y="16" width="10" height="90" rx="1.5" fill="#0F1318"/><rect x="136" y="16" width="10" height="90" rx="1.5" fill="#0F1318"/><rect x="10" y="140" width="128" height="7" rx="1.5" fill="#0F1318"/><rect x="10" y="168" width="90" height="5" rx="1.5" fill="#0F1318"/><rect x="118" y="168" width="30" height="26" rx="3" fill="#8792A2"/><g fill="#2B2F36" stroke="#9AA3AF"><circle cx="40" cy="96" r="3.5"/><circle cx="49" cy="96" r="3.5"/><circle cx="58" cy="96" r="3.5"/><circle cx="162" cy="40" r="3.5"/><circle cx="162" cy="50" r="3.5"/></g><rect x="156" y="150" width="16" height="30" rx="1.5" fill="#0F1318"/>`,
+      cpu: `<rect x="1" y="1" width="42" height="42" rx="4" fill="#AEB7C4" stroke="#4E5664" stroke-width="2"/><rect x="7" y="7" width="30" height="30" rx="3" fill="#D8DEE6" stroke="#9AA3AF"/><text x="22" y="25.5" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="#3A404C">CPU</text><path d="M3.5 40.5V34L10 40.5Z" fill="#D2B464"/>`,
+      ram: [0, 14].map(x => `<rect x="${x}" y="0" width="10" height="90" rx="1.5" fill="#262B38" stroke="#0F1318"/><rect class="rgb" x="${x + 1}" y="1" width="8" height="10" rx="1" fill="#6B5CFF"/>${[16, 32, 48, 64].map(y => `<rect x="${x + 2}" y="${y}" width="6" height="10" fill="#151821"/>`).join('')}<rect x="${x + 1}" y="84" width="8" height="5" fill="#D2B464"/>`).join(''),
+      gpu: `<rect x="1" y="1" width="188" height="26" rx="4" fill="#20232C" stroke="#0A0B0F" stroke-width="2"/><circle cx="55" cy="14" r="11" fill="#2F3442" stroke="#5C6577"/>${fanBlades(55, 14, 11, '#8C95A8')}<circle cx="120" cy="14" r="11" fill="#2F3442" stroke="#5C6577"/>${fanBlades(120, 14, 11, '#8C95A8')}<rect class="rgb" x="8" y="22.5" width="174" height="2.6" rx="1.3" fill="#6B5CFF"/><text x="164" y="17" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700" fill="#9AA3AF">GPU</text>`,
+      psu: `<rect x="1" y="1" width="110" height="56" rx="4" fill="#2A2E37" stroke="#0A0B0F" stroke-width="2"/><circle cx="36" cy="29" r="21" fill="#1B1E25" stroke="#4A5160" stroke-width="1.5"/>${fanBlades(36, 29, 19, '#5B6375')}<rect x="66" y="12" width="38" height="16" rx="2" fill="#FFC93C"/><text x="85" y="23.5" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8.5" font-weight="700" fill="#241A3A">650 W</text><circle class="led" cx="98" cy="45" r="3" fill="#3A3F4B"/>`,
+      ssd: `<rect x="1" y="1" width="78" height="30" rx="3" fill="#30343F" stroke="#0A0B0F" stroke-width="2"/><rect x="7" y="8" width="48" height="16" rx="2" fill="#FF8A3D"/><text x="31" y="19.5" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7.5" font-weight="700" fill="#241A3A">SSD 1 TB</text><circle class="led" cx="68" cy="16" r="2.6" fill="#3A3F4B"/>`,
+    }[id];
+    return `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${body}</svg>`;
+  },
+  caseSVG() {
+    const frontFan = (cx, cy) => `<circle class="ring" cx="${cx}" cy="${cy}" r="16" fill="#101218" stroke="#3E4454" stroke-width="2.5"/>${fanBlades(cx, cy, 15, '#4A5160')}`;
+    let holes = ''; for (let y = 36; y < 236; y += 22) holes += `<rect x="238" y="${y}" width="8" height="12" rx="3" fill="#222632"/>`;
+    let pci = ''; for (let y = 152; y < 232; y += 11) pci += `<rect x="14" y="${y}" width="9" height="7" rx="1" fill="#2B2F3B"/>`;
+    return `<svg viewBox="0 0 300 340" aria-hidden="true"><rect x="2" y="2" width="296" height="336" rx="14" fill="#2E3240" stroke="#241A3A" stroke-width="4"/><rect x="12" y="12" width="276" height="316" rx="8" fill="#171A22"/>${holes}${pci}<rect x="14" y="26" width="9" height="104" rx="2" fill="#2B2F3B"/><rect x="12" y="246" width="276" height="82" fill="#20242F"/><path d="M12 246 H288" stroke="#3A3F4E" stroke-width="2"/>${frontFan(270, 70)}${frontFan(270, 128)}<circle cx="34" cy="70" r="15" fill="#101218" stroke="#3E4454" stroke-width="2"/>${fanBlades(34, 70, 14, '#4A5160')}<path d="M196 12 L236 12 L116 328 L76 328 Z" fill="rgba(255,255,255,.035)"/></svg>`;
+  },
+  init() {
+    if (this.ready) return; this.ready = true;
+    $('#pcPower').addEventListener('click', () => this.boot());
+    $('#pcCase').addEventListener('click', e => { if (!this.sel) return; const slot = e.target.closest('[data-slot]'); const r = slot ? slot.getBoundingClientRect() : null; this.attempt(this.sel, slot, r ? r.left + r.width / 2 : e.clientX, r ? r.top + r.height / 2 : e.clientY); });
+  },
+  start() {
+    this.init(); this.placed = {}; this.sel = null; this.booted = false; this.mistakes = 0;
+    const cs = $('#pcCase'); cs.className = 'case'; cs.innerHTML = this.caseSVG();
+    this.slotEls = {};
+    for (const [id, [x, y, w, h]] of Object.entries(this.SLOTS)) {
+      const d = document.createElement('div'); d.className = 'pslot' + (this.ON_MOBO.includes(id) ? ' onmobo' : ''); d.dataset.slot = id; d.dataset.drop = 'pc';
+      d.style.cssText = `left:${x / 3}%;top:${y / 3.4}%;width:${w / 3}%;height:${h / 3.4}%;z-index:${{ mobo: 1, psu: 1, ssd: 1, gpu: 3, cpu: 3, ram: 3 }[id]}`;
+      d.innerHTML = `<span>${this.LABEL[id]}</span>`; cs.appendChild(d); this.slotEls[id] = d;
+    }
+    const tray = $('#pcTray'); tray.innerHTML = '';
+    shuffle(Object.keys(this.SLOTS)).forEach(id => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pcp'; b.dataset.part = id; b.innerHTML = this.svg(id) + `<span>${this.NAMES[id]}</span>`;
+      dragify(b, {
+        enabled: () => !b.classList.contains('gone') && !this.booted,
+        ghost: () => { const k = cs.clientWidth / 300, [, , w, h] = this.SLOTS[id], g = document.createElement('div'); g.innerHTML = this.svg(id); const sv = g.firstChild; sv.setAttribute('width', w * k); sv.setAttribute('height', h * k); sv.style.display = 'block'; return g; },
+        drop: (t, x, y) => this.attempt(id, t && t.closest('[data-slot]'), x, y),
+        tap: () => { this.sel = this.sel === id ? null : id; $$('#pcTray .pcp').forEach(n => n.classList.toggle('sel', n.dataset.part === this.sel)); if (this.sel) toast(`Wybrano: ${this.NAMES[id]}. Kliknij jej miejsce w obudowie.`); },
+      });
+      tray.appendChild(b);
+    });
+    $('#pcScreen').innerHTML = '<div class="nosig">BRAK SYGNAŁU</div>'; $('#pcMonitor').classList.remove('on');
+    $('#pcPower').disabled = true; this.chip(); show('s-pc');
+  },
+  chip() { $('#pcChip').textContent = `${Object.keys(this.placed).length}/6`; },
+  attempt(id, slotEl, x, y) {
+    if (this.placed[id]) return;
+    if (this.ON_MOBO.includes(id) && !this.placed.mobo) { Sfx.bad(); toast('Najpierw zamontuj płytę główną. Na niej są gniazda na resztę.', 'bad'); return; }
+    const r = this.slotEls[id].getBoundingClientRect(), pad = 16;
+    if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) { this.place(id); return; }
+    const cr = $('#pcCase').getBoundingClientRect(); if (x < cr.left || x > cr.right || y < cr.top || y > cr.bottom) return;
+    this.mistakes++; Sfx.bad();
+    if (slotEl && slotEl.dataset.slot !== id && !this.placed[slotEl.dataset.slot]) toast(`To miejsce na: ${this.NAMES[slotEl.dataset.slot].toLowerCase()}`, 'bad');
+    else toast('Nie tutaj. Szukaj gniazda o pasującym kształcie.', 'bad');
+  },
+  place(id) {
+    this.placed[id] = true; const s = this.slotEls[id];
+    s.classList.add('filled', 'snap'); s.insertAdjacentHTML('beforeend', this.svg(id));
+    if (id === 'mobo') $('#pcCase').classList.add('has-mobo');
+    const b = $(`#pcTray [data-part="${id}"]`); b.classList.add('gone'); b.classList.remove('sel'); if (this.sel === id) this.sel = null;
+    Sfx.t(880, .05, 'square', .04); Sfx.good(); this.chip();
+    const n = Object.keys(this.placed).length;
+    if (n === 6) { $('#pcPower').disabled = false; toast('Wszystko zamontowane! Włącz komputer.', 'good'); }
+    else toast(`${this.NAMES[id]} zamontowana.`.replace('Procesor zamontowana', 'Procesor zamontowany').replace('Dysk SSD zamontowana', 'Dysk SSD zamontowany').replace('Zasilacz zamontowana', 'Zasilacz zamontowany'), 'good');
+  },
+  boot() {
+    if (this.booted || Object.keys(this.placed).length < 6) return;
+    this.booted = true; $('#pcPower').disabled = true; $('#pcCase').classList.add('on'); $('#pcMonitor').classList.add('on');
+    Sfx.t(220, .5, 'sawtooth', .02); Sfx.t(440, .12, 'square', .04, .4);
+    const scr = $('#pcScreen'); scr.innerHTML = '';
+    const lines = [['ARENA BIOS v1.0', ''], ['Procesor', 'OK'], ['Pamięć RAM 16 GB', 'OK'], ['Karta graficzna', 'OK'], ['Dysk SSD 1 TB', 'OK'], ['Uruchamianie systemu Linux…', '']];
+    lines.forEach(([t, ok], i) => setTimeout(() => {
+      if (current !== 's-pc') return;
+      const d = document.createElement('div'); d.innerHTML = ok ? `${t} <span class="dim">${'.'.repeat(Math.max(2, 22 - t.length))}</span> <span class="ok">${ok}</span>` : `<span class="${i ? '' : 'ok'}">${t}</span>`; scr.appendChild(d); Sfx.t(1200, .03, 'square', .02);
+    }, 500 + i * 420));
+    setTimeout(() => {
+      if (current !== 's-pc') return;
+      scr.innerHTML = '<div class="desk"><div class="term"><span class="pr">uczen@arena:~$</span> echo "Komputer działa!"<br>Komputer działa!<br><span class="pr">uczen@arena:~$</span> <span class="cur">▌</span></div></div>';
+      Sfx.win(); confetti();
+      setTimeout(() => { if (current === 's-pc') showResult({ stars: null, title: 'Komputer działa!', text: `<p>Pomyłki przy składaniu: ${this.mistakes}</p><div class="note">Płyta główna łączy wszystkie części. Procesor liczy, RAM przechowuje dane na chwilę, dysk SSD na stałe, a zasilacz daje prąd.</div>`, actions: [{ label: 'Złóż jeszcze raz', primary: true, fn: () => this.start() }, { label: 'Quiz z informatyki', fn: () => Quiz.start('informatyka') }, { label: 'Menu', fn: () => show('home') }] }); }, 1800);
+    }, 500 + lines.length * 420 + 500);
+  },
+};
+
+/* ---------- start ---------- */
+window.addEventListener('resize', () => { if (current === 's-chemia') Chem.resize(); if (current === 's-fizyka') Phys.resize(); if (current === 's-niemiecki') Ger.drawLines(); });
+renderHome();
+})();
+</script>
+</body>
+</html>
